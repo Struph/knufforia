@@ -1,0 +1,464 @@
+/* Articulated combat puppets */
+.puppet {
+  --skin: #f0c2a8;
+  --skin-shadow: #d99a7e;
+  --hair: #ff7eb3;
+  --cloth: #4db89a;
+  --cloth-dark: #2f8f76;
+  --accent: #ffd27a;
+  --boot: #3a2f45;
+  --eye: #2a1f18;
+  position: relative;
+  width: 54px;
+  height: 78px;
+  transform-origin: center bottom;
+  filter: drop-shadow(0 3px 4px rgba(20, 16, 28, 0.35));
+}
+
+.puppet.facing-left {
+  transform: scaleX(-1);
+}
+.puppet.facing-left .p-nameflip {
+  transform: scaleX(-1);
+}
+
+.puppet.boss {
+  width: 84px;
+  height: 118px;
+}
+
+.p-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 70%;
+  height: 8px;
+  transform: translateX(-50%);
+  background: rgba(20, 16, 28, 0.28);
+  border-radius: 50%;
+  filter: blur(2px);
+}
+
+.p-body {
+  position: absolute;
+  inset: 0 0 4px;
+  transform-origin: center bottom;
+}
+
+.p-hip {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  width: 18px;
+  height: 10px;
+  margin-left: -9px;
+  background: var(--cloth-dark);
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.p-leg {
+  position: absolute;
+  bottom: 4px;
+  width: 10px;
+  height: 28px;
+  transform-origin: top center;
+  z-index: 1;
+}
+.p-leg-l {
+  left: 14px;
+}
+.p-leg-r {
+  right: 14px;
+}
+
+.p-thigh {
+  position: absolute;
+  top: 0;
+  left: 1px;
+  width: 8px;
+  height: 14px;
+  background: var(--skin);
+  border-radius: 5px;
+  transform-origin: top center;
+}
+.p-shin {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  width: 10px;
+  height: 16px;
+  background: linear-gradient(180deg, var(--skin) 35%, var(--boot) 36%);
+  border-radius: 4px 4px 3px 3px;
+  transform-origin: top center;
+}
+
+.p-torso {
+  position: absolute;
+  left: 50%;
+  bottom: 32px;
+  width: 24px;
+  height: 28px;
+  margin-left: -12px;
+  transform-origin: center bottom;
+  z-index: 3;
+}
+
+.p-chest {
+  position: absolute;
+  inset: 6px 2px 0;
+  background: linear-gradient(180deg, var(--cloth), var(--cloth-dark));
+  border-radius: 10px 10px 8px 8px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.08);
+}
+
+.p-chest::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.p-arm {
+  position: absolute;
+  top: 6px;
+  width: 8px;
+  height: 24px;
+  transform-origin: top center;
+  z-index: 4;
+}
+.p-arm-l {
+  left: -4px;
+  z-index: 2;
+}
+.p-arm-r {
+  right: -4px;
+  z-index: 5;
+}
+
+.p-upper {
+  position: absolute;
+  top: 0;
+  left: 1px;
+  width: 7px;
+  height: 12px;
+  background: var(--skin);
+  border-radius: 5px;
+  transform-origin: top center;
+}
+.p-fore {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 8px;
+  height: 13px;
+  background: var(--skin);
+  border-radius: 5px;
+  transform-origin: top center;
+}
+
+.p-weapon {
+  position: absolute;
+  top: 8px;
+  left: 5px;
+  width: 4px;
+  height: 22px;
+  background: linear-gradient(180deg, var(--accent), #c49a4a);
+  border-radius: 2px;
+  transform: rotate(-18deg);
+  transform-origin: top center;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.p-weapon::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  width: 10px;
+  height: 8px;
+  background: var(--cloth);
+  border-radius: 3px;
+}
+
+.puppet.is-orc .p-weapon {
+  width: 7px;
+  height: 18px;
+  left: 4px;
+  background: linear-gradient(180deg, #8b5a2b, #5a3418);
+  border-radius: 3px 3px 2px 2px;
+}
+.puppet.is-orc .p-weapon::before {
+  width: 14px;
+  height: 12px;
+  left: -4px;
+  top: 12px;
+  background: #6b4424;
+  border-radius: 50%;
+}
+
+.p-head {
+  position: absolute;
+  left: 50%;
+  top: -16px;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  z-index: 6;
+  transform-origin: center bottom;
+}
+.p-hair {
+  position: absolute;
+  inset: -4px -3px 4px;
+  background: var(--hair);
+  border-radius: 12px 12px 8px 8px;
+  z-index: 1;
+}
+.p-hair::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: -8px;
+  height: 14px;
+  background: var(--hair);
+  border-radius: 8px;
+  opacity: 0.95;
+}
+.p-face {
+  position: absolute;
+  inset: 3px 2px 1px;
+  background: var(--skin);
+  border-radius: 10px;
+  z-index: 2;
+  overflow: hidden;
+}
+.p-eye {
+  position: absolute;
+  top: 8px;
+  width: 3px;
+  height: 4px;
+  background: var(--eye);
+  border-radius: 50%;
+}
+.p-eye.l {
+  left: 5px;
+}
+.p-eye.r {
+  right: 5px;
+}
+.p-face::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 6px;
+  height: 2px;
+  margin-left: -3px;
+  border-radius: 2px;
+  background: rgba(180, 80, 90, 0.45);
+}
+
+.puppet.is-orc .p-face::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  width: 3px;
+  height: 6px;
+  background: #fff6ea;
+  border-radius: 1px;
+  box-shadow: 12px 0 0 #fff6ea;
+  z-index: 3;
+}
+
+/* Idle breath */
+.puppet.idle .p-body {
+  animation: p-idle 2.2s ease-in-out infinite;
+}
+.puppet.idle .p-arm-r {
+  animation: p-arm-idle 2.2s ease-in-out infinite;
+}
+
+@keyframes p-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes p-arm-idle {
+  0%,
+  100% {
+    transform: rotate(6deg);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+}
+
+/* Walk */
+.puppet.walk .p-leg-l {
+  animation: p-walk-l 0.34s linear infinite;
+}
+.puppet.walk .p-leg-r {
+  animation: p-walk-r 0.34s linear infinite;
+}
+.puppet.walk .p-arm-l {
+  animation: p-walk-r 0.34s linear infinite;
+}
+.puppet.walk .p-arm-r {
+  animation: p-walk-l 0.34s linear infinite;
+}
+.puppet.walk .p-body {
+  animation: p-walk-bob 0.34s linear infinite;
+}
+
+@keyframes p-walk-l {
+  0%,
+  100% {
+    transform: rotate(22deg);
+  }
+  50% {
+    transform: rotate(-22deg);
+  }
+}
+@keyframes p-walk-r {
+  0%,
+  100% {
+    transform: rotate(-22deg);
+  }
+  50% {
+    transform: rotate(22deg);
+  }
+}
+@keyframes p-walk-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Attack slash */
+.puppet.attack .p-arm-r {
+  animation: p-slash 0.38s ease;
+}
+.puppet.attack .p-torso {
+  animation: p-lunge-torso 0.38s ease;
+}
+.puppet.attack .p-weapon {
+  animation: p-weapon-flash 0.38s ease;
+}
+
+@keyframes p-slash {
+  0% {
+    transform: rotate(20deg);
+  }
+  40% {
+    transform: rotate(-110deg);
+  }
+  100% {
+    transform: rotate(10deg);
+  }
+}
+@keyframes p-lunge-torso {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-8deg) translateX(3px);
+  }
+}
+@keyframes p-weapon-flash {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  45% {
+    filter: brightness(1.45);
+  }
+}
+
+.puppet.hurt .p-body {
+  animation: p-hurt 0.3s ease;
+}
+@keyframes p-hurt {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-4px) rotate(-4deg);
+  }
+  60% {
+    transform: translateX(4px) rotate(3deg);
+  }
+}
+
+.unit.combat-active {
+  z-index: 20 !important;
+  transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.28, 1);
+}
+.unit.combat-returning {
+  z-index: 20 !important;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hit-spark {
+  position: fixed;
+  z-index: 45;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  margin-top: -9px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, #fff7ef 0%, #ffd27a 40%, transparent 70%);
+  animation: spark-pop 0.35s ease forwards;
+}
+@keyframes spark-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.slash-arc {
+  position: fixed;
+  z-index: 44;
+  width: 42px;
+  height: 42px;
+  margin-left: -8px;
+  margin-top: -22px;
+  border: 3px solid rgba(255, 247, 239, 0.9);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: slash-fade 0.3s ease forwards;
+}
+@keyframes slash-fade {
+  0% {
+    transform: rotate(-20deg) scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(40deg) scale(1.2);
+    opacity: 0;
+  }
+}

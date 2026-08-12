@@ -263,8 +263,8 @@ body {
   overflow: hidden;
   box-shadow: 0 10px 24px rgba(47, 36, 56, 0.2);
   background:
-    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255, 255, 255, 0.28), transparent 55%),
-    linear-gradient(180deg, #6fbfb0 0%, #8fc98a 42%, #d2b56a 78%, #b9924f 100%);
+    radial-gradient(ellipse 70% 55% at 50% 40%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(180deg, #4f7f9a 0%, #5f9a88 34%, #7aab6e 62%, #c4a35e 100%);
 }
 
 .path-road {
@@ -309,15 +309,28 @@ body {
   display: none;
 }
 
+.unit-art {
+  display: none;
+}
+
+.unit .puppet {
+  margin-bottom: 0.1rem;
+}
+
+.unit.boss-unit .puppet {
+  width: 84px;
+  height: 118px;
+}
+
 .unit {
   position: absolute;
-  width: clamp(52px, 12.5vw, 92px);
+  width: clamp(56px, 13vw, 96px);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.12rem;
   pointer-events: auto;
-  transition: filter 0.18s ease, opacity 0.2s ease;
+  will-change: transform;
 }
 
 /* Heroes: 2 front (near path), 1 mid, 2 back (near edge) */
@@ -389,28 +402,6 @@ body {
 .unit.dead {
   opacity: 0.3;
   filter: grayscale(0.75);
-}
-
-.unit.attack-hero {
-  animation: lunge-right 0.26s ease;
-}
-.unit.attack-foe {
-  animation: lunge-left 0.26s ease;
-}
-.unit.hurt {
-  animation: shake 0.26s ease;
-}
-
-.unit-art {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 3 / 4;
-  object-fit: contain;
-  object-position: bottom center;
-  background: transparent;
-  filter: drop-shadow(0 4px 6px rgba(47, 36, 56, 0.35));
-  pointer-events: none;
-  user-select: none;
 }
 
 .unit-name {

@@ -5,24 +5,26 @@
   const AFK_GOLD_PER_MIN = 2;
 
   const HERO_TEMPLATES = [
-    { id: "lumi", name: "Lumi", img: "assets/heroes/hero-lumi.webp?v=4", atk: 12, maxHp: 110 },
-    { id: "sora", name: "Sora", img: "assets/heroes/hero-sora.webp?v=4", atk: 11, maxHp: 105 },
-    { id: "mika", name: "Mika", img: "assets/heroes/hero-mika.webp?v=4", atk: 14, maxHp: 100 },
-    { id: "hana", name: "Hana", img: "assets/heroes/hero-hana.webp?v=4", atk: 10, maxHp: 120 },
-    { id: "nori", name: "Nori", img: "assets/heroes/hero-nori.webp?v=4", atk: 13, maxHp: 95 },
+    { id: "lumi", name: "Lumi", puppet: "lumi", atk: 12, maxHp: 110 },
+    { id: "sora", name: "Sora", puppet: "sora", atk: 11, maxHp: 105 },
+    { id: "mika", name: "Mika", puppet: "mika", atk: 14, maxHp: 100 },
+    { id: "hana", name: "Hana", puppet: "hana", atk: 10, maxHp: 120 },
+    { id: "nori", name: "Nori", puppet: "nori", atk: 13, maxHp: 95 },
   ];
 
   const ORC_POOL = [
-    { name: "Knuffork", img: "assets/enemies/orc-grunt.webp?v=4", atk: 5, hpMul: 1 },
-    { name: "Zahnork", img: "assets/enemies/orc-grunt.webp?v=4", atk: 6, hpMul: 1.05 },
-    { name: "Keulenork", img: "assets/enemies/orc-brute.webp?v=4", atk: 7, hpMul: 1.2 },
-    { name: "Moosork", img: "assets/enemies/orc-brute.webp?v=4", atk: 7, hpMul: 1.25 },
-    { name: "Runenork", img: "assets/enemies/orc-shaman.webp?v=4", atk: 8, hpMul: 1.1 },
-    { name: "Kriegsork", img: "assets/enemies/orc-warrior.webp?v=4", atk: 9, hpMul: 1.3 },
+    { name: "Knuffork", puppet: "orc", atk: 5, hpMul: 1 },
+    { name: "Zahnork", puppet: "orc", atk: 6, hpMul: 1.05 },
+    { name: "Keulenork", puppet: "orcBrute", atk: 7, hpMul: 1.2 },
+    { name: "Moosork", puppet: "orcBrute", atk: 7, hpMul: 1.25 },
+    { name: "Runenork", puppet: "orcShaman", atk: 8, hpMul: 1.1 },
+    { name: "Kriegsork", puppet: "orc", atk: 9, hpMul: 1.3 },
   ];
 
   // 2 vorne, 1 mittig, 2 hinten
   const FORMATION_SLOTS = ["front-a", "front-b", "mid", "back-a", "back-b"];
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const el = {
     screens: {
@@ -116,7 +118,7 @@
       return [
         {
           name: `Häuptling Raum ${room}`,
-          img: "assets/enemies/orc-boss.webp?v=4",
+          puppet: "orcBoss",
           atk: scaleForRoom(14, room),
           maxHp: hp,
           hp,
@@ -131,7 +133,7 @@
       const maxHp = scaleForRoom(28 * template.hpMul, room);
       return {
         name: template.name,
-        img: template.img,
+        puppet: template.puppet,
         atk: scaleForRoom(template.atk, room),
         maxHp,
         hp: maxHp,
@@ -156,11 +158,14 @@
     wrap.dataset.id = unit.id || unit.name;
     wrap.dataset.side = side;
     if (slot) wrap.dataset.slot = slot;
+    const facing = side === "heroes" ? "right" : "left";
+    const puppetKind = unit.puppet || (side === "heroes" ? "lumi" : "orc");
     wrap.innerHTML = `
-      <img class="unit-art" src="${unit.img}" alt="" />
+      ${window.KnufforiaPuppets.html(puppetKind, facing)}
       <p class="unit-name">${unit.name}</p>
       <div class="unit-hp"><span style="width:${Math.max(0, (unit.hp / unit.maxHp) * 100)}%"></span></div>
     `;
+    if (unit.boss) wrap.querySelector(".puppet")?.classList.add("boss");
     return wrap;
   }
 
@@ -184,6 +189,29 @@
     return lane.children[index] || null;
   }
 
+  function homeTransform(node) {
+    return node.classList.contains("boss-unit") ? "translate(-50%, -50%)" : "translate(0px, 0px)";
+  }
+
+  function sparkAt(node) {
+    if (!node) return;
+    const r = node.getBoundingClientRect();
+    const spark = document.createElement("div");
+    spark.className = "hit-spark";
+    spark.style.left = `${r.left + r.width * 0.55}px`;
+    spark.style.top = `${r.top + r.height * 0.35}px`;
+    document.body.appendChild(spark);
+    const arc = document.createElement("div");
+    arc.className = "slash-arc";
+    arc.style.left = `${r.left + r.width * 0.35}px`;
+    arc.style.top = `${r.top + r.height * 0.25}px`;
+    document.body.appendChild(arc);
+    setTimeout(() => {
+      spark.remove();
+      arc.remove();
+    }, 360);
+  }
+
   function floatText(text, node, kind = "") {
     if (!node) return;
     const r = node.getBoundingClientRect();
@@ -194,6 +222,69 @@
     tip.style.top = `${r.top + 8}px`;
     document.body.appendChild(tip);
     setTimeout(() => tip.remove(), 850);
+  }
+
+  async function moveUnitToTarget(node, targetNode) {
+    node.style.transform = homeTransform(node);
+    await wait(16);
+    const a = node.getBoundingClientRect();
+    const b = targetNode.getBoundingClientRect();
+    const gap = 38;
+    let dx = b.left + b.width / 2 - (a.left + a.width / 2);
+    let dy = b.top + b.height / 2 - (a.top + a.height / 2);
+    const len = Math.hypot(dx, dy) || 1;
+    dx -= (dx / len) * gap;
+    dy -= (dy / len) * gap;
+    node.classList.add("combat-active");
+    if (node.classList.contains("boss-unit")) {
+      node.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    } else {
+      node.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+    await wait(480);
+  }
+
+  async function moveUnitHome(node) {
+    node.classList.add("combat-returning");
+    node.style.transform = homeTransform(node);
+    await wait(420);
+    node.classList.remove("combat-active", "combat-returning");
+  }
+
+  async function choreographedAttack(attacker, atkIndex, target, defIndex, side) {
+    const atkNode = findUnitEl(side === "heroes" ? "heroes" : "foes", atkIndex);
+    const defNode = findUnitEl(side === "heroes" ? "foes" : "heroes", defIndex);
+    if (!atkNode || !defNode) return;
+
+    const puppet = atkNode.querySelector(".puppet");
+    const defPuppet = defNode.querySelector(".puppet");
+
+    window.KnufforiaPuppets.setAnim(puppet, "walk");
+    await moveUnitToTarget(atkNode, defNode);
+
+    window.KnufforiaPuppets.setAnim(puppet, "attack");
+    await wait(180);
+    sparkAt(defNode);
+    window.KnufforiaPuppets.setAnim(defPuppet, "hurt");
+
+    const dmg = attacker.atk + Math.floor(Math.random() * 4);
+    target.hp = Math.max(0, target.hp - dmg);
+    floatText(`-${dmg}`, defNode, "dmg");
+
+    if (target.hp <= 0) {
+      target.dead = true;
+      target.hp = 0;
+      setLog(`${attacker.name} besiegt ${target.name}!`);
+    } else {
+      setLog(`${attacker.name} trifft ${target.name} für ${dmg}.`);
+    }
+    renderHud();
+
+    await wait(220);
+    window.KnufforiaPuppets.setAnim(defPuppet, "idle");
+    window.KnufforiaPuppets.setAnim(puppet, "walk");
+    await moveUnitHome(atkNode);
+    window.KnufforiaPuppets.setAnim(puppet, "idle");
   }
 
   function setLog(text) {
@@ -322,7 +413,7 @@
     }, 700);
   }
 
-  function attackOnce() {
+  async function attackOnce() {
     if (state.paused || state.busyRoom || state.screen !== "battle") return;
     if (window.matchMedia("(orientation: portrait) and (max-width: 920px)").matches) return;
 
@@ -338,7 +429,6 @@
     const attackers = state.side === "heroes" ? state.heroes : state.enemies;
     const defenders = state.side === "heroes" ? state.enemies : state.heroes;
 
-    // advance index to next living attacker
     let tries = 0;
     while (tries < attackers.length && (attackers[state.index].dead || attackers[state.index].hp <= 0)) {
       state.index = (state.index + 1) % attackers.length;
@@ -359,42 +449,19 @@
       return;
     }
     const defIndex = defenders.indexOf(target);
+    const side = state.side;
 
-    const atkNode = findUnitEl(state.side === "heroes" ? "heroes" : "foes", atkIndex);
-    const defNode = findUnitEl(state.side === "heroes" ? "foes" : "heroes", defIndex);
+    state.paused = true;
+    await choreographedAttack(attacker, atkIndex, target, defIndex, side);
+    state.paused = state.screen !== "battle" || state.busyRoom;
 
-    if (atkNode) {
-      atkNode.classList.remove("attack-hero", "attack-foe");
-      void atkNode.offsetWidth;
-      atkNode.classList.add(state.side === "heroes" ? "attack-hero" : "attack-foe");
-    }
-    if (defNode) {
-      defNode.classList.remove("hurt");
-      void defNode.offsetWidth;
-      defNode.classList.add("hurt");
-    }
-
-    const dmg = attacker.atk + Math.floor(Math.random() * 4);
-    target.hp = Math.max(0, target.hp - dmg);
-    floatText(`-${dmg}`, defNode, "dmg");
-
-    if (target.hp <= 0) {
-      target.dead = true;
-      target.hp = 0;
-      setLog(`${attacker.name} besiegt ${target.name}!`);
-    } else {
-      setLog(`${attacker.name} trifft ${target.name} für ${dmg}.`);
-    }
-
-    const next = state.index + 1;
+    const next = atkIndex + 1;
     if (next >= attackers.length) {
-      state.side = state.side === "heroes" ? "enemies" : "heroes";
+      state.side = side === "heroes" ? "enemies" : "heroes";
       state.index = 0;
     } else {
       state.index = next;
     }
-
-    renderHud();
 
     if (!living(state.enemies).length) {
       nextRoom();
@@ -406,6 +473,17 @@
     }
 
     save();
+  }
+
+  async function combatLoop() {
+    while (true) {
+      try {
+        await attackOnce();
+      } catch (_) {
+        /* keep loop alive */
+      }
+      await wait(220);
+    }
   }
 
   function doUpgrade() {
@@ -584,7 +662,7 @@
   save();
   renderHud();
 
-  setInterval(attackOnce, TICK_MS);
+  combatLoop();
   setInterval(save, 15000);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") save();
