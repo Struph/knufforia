@@ -5,10 +5,11 @@ OUT = "/agent/knufforia/assets/models"
 def render_glb(glb, png):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=glb)
-    # Prefer body mesh only (ignore empties / helpers)
-    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH" and "Body" in o.name]
-    if not meshes:
-        meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    # Drop stray default/helper meshes with no materials
+    for o in list(bpy.context.scene.objects):
+        if o.type == "MESH" and (not o.data.materials or o.name.startswith("Icosphere")):
+            bpy.data.objects.remove(o, do_unlink=True)
+    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     coords = []
     for o in meshes:
         mw = o.matrix_world
@@ -20,13 +21,16 @@ def render_glb(glb, png):
     height = max(maxv.z - minv.z, 0.1)
     print("bbox", minv, maxv, "h", height)
 
-    bpy.ops.object.light_add(type="AREA", location=(center.x + 1.0, center.y - 1.2, center.z + height * 0.4))
-    bpy.context.active_object.data.energy = 150
-    bpy.context.active_object.data.size = 2.5
-    bpy.ops.object.light_add(type="SUN", rotation=(0.4, 0.2, 0.1))
-    bpy.context.active_object.data.energy = 3
+    bpy.ops.object.light_add(type="AREA", location=(center.x + 0.8, center.y - 1.0, center.z + height * 0.35))
+    bpy.context.active_object.data.energy = 25
+    bpy.context.active_object.data.size = 2.0
+    bpy.ops.object.light_add(type="AREA", location=(center.x - 0.6, center.y + 0.8, center.z + height * 0.5))
+    bpy.context.active_object.data.energy = 12
+    bpy.context.active_object.data.size = 1.5
+    bpy.ops.object.light_add(type="SUN", rotation=(0.5, 0.15, 0.2))
+    bpy.context.active_object.data.energy = 0.8
 
-    cam_loc = Vector((center.x, center.y - height * 1.7, center.z))
+    cam_loc = Vector((center.x, center.y - height * 1.85, center.z + height * 0.02))
     bpy.ops.object.camera_add(location=cam_loc)
     cam = bpy.context.active_object
     direction = center - cam.location
@@ -38,20 +42,20 @@ def render_glb(glb, png):
 
     scene = bpy.context.scene
     scene.render.engine = "BLENDER_EEVEE"
+    scene.view_settings.view_transform = "Standard"
+    scene.view_settings.look = "None"
+    scene.view_settings.exposure = -0.3
     scene.render.resolution_x = 512
     scene.render.resolution_y = 768
     scene.render.film_transparent = True
     scene.world = bpy.data.worlds.new("W")
     scene.world.use_nodes = True
     bg = scene.world.node_tree.nodes["Background"]
-    bg.inputs[0].default_value = (0.75, 0.82, 0.88, 1)
-    bg.inputs[1].default_value = 0.6
+    bg.inputs[0].default_value = (0.55, 0.60, 0.68, 1)
+    bg.inputs[1].default_value = 0.35
     scene.render.filepath = png
     scene.render.image_settings.file_format = "PNG"
-    # Pose armature to rest / frame 1 idle
-    for o in bpy.context.scene.objects:
-        if o.type == "ARMATURE" and o.animation_data and o.animation_data.action:
-            bpy.context.scene.frame_set(1)
+    bpy.context.scene.frame_set(1)
     bpy.ops.render.render(write_still=True)
     print("rendered", png)
 
