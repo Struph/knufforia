@@ -1,5 +1,5 @@
 (() => {
-  const SAVE_KEY = "knufforia-save-v4";
+  const SAVE_KEY = "knufforia-save-v5";
   const AFK_CAP_HOURS = 8;
   const AFK_GOLD_PER_MIN = 2;
   const FORMATION_SLOTS = ["front-a", "front-b", "mid", "back-a", "back-b"];
@@ -323,13 +323,24 @@
   }
 
   /* ===== Creator UI ===== */
-  function renderCreatePreview() {
-    el.createPreview.innerHTML = C.avatarHtml(state.draft);
+  let viewerReady = false;
+
+  async function ensureViewer() {
+    if (!window.KnufforiaViewer3D) return;
+    await window.KnufforiaViewer3D.mount(el.createPreview);
+    viewerReady = true;
+  }
+
+  async function renderCreatePreview() {
     el.createNameLive.textContent = state.draft.name.trim() || "Dein Held";
-    const cls = C.classStats(state.draft.classId);
-    el.createClassLive.textContent = cls.label;
-    const rig = el.createPreview.querySelector(".avatar-rig");
-    if (rig) window.KnufforiaPuppets.setAnim(rig, "idle");
+    const g = state.draft.gender || state.draft.body || "female";
+    el.createClassLive.textContent = g === "male" ? "Mann · Basis" : "Frau · Basis";
+    try {
+      await ensureViewer();
+      await window.KnufforiaViewer3D.show(g);
+    } catch (err) {
+      el.createPreview.innerHTML = C.avatarHtml(state.draft);
+    }
   }
 
   function chips(options, key) {
@@ -337,15 +348,6 @@
       .map(
         (o) =>
           `<button type="button" class="option-chip ${state.draft[key] === o.id ? "active" : ""}" data-key="${key}" data-val="${o.id}">${o.label}</button>`
-      )
-      .join("")}</div>`;
-  }
-
-  function swatches(colors, key) {
-    return `<div class="swatch-row">${colors
-      .map(
-        (c) =>
-          `<button type="button" class="swatch ${state.draft[key] === c ? "active" : ""}" data-key="${key}" data-val="${c}" style="background:${c}" aria-label="${c}"></button>`
       )
       .join("")}</div>`;
   }
@@ -364,31 +366,12 @@
       html += `<div class="create-field"><label for="in-name">Heldenname</label>
         <input id="in-name" type="text" maxlength="16" placeholder="z. B. Liora" value="${state.draft.name.replace(/"/g, "&quot;")}" /></div>`;
     } else if (step.id === "body") {
-      html += `<div class="create-field"><label>Körpertyp</label>${chips(C.BODIES, "body")}</div>
-        <p class="lead">Menschliche Proportionen mit Anime-Gesicht – wie in Fiesta Online.</p>`;
-    } else if (step.id === "hair") {
-      html += `<div class="create-field"><label>Frisur</label>${chips(C.HAIR_STYLES, "hairStyle")}</div>
-        <div class="create-field"><label>Haarfarbe</label>${swatches(C.HAIR_COLORS, "hairColor")}</div>`;
-    } else if (step.id === "face") {
-      html += `<div class="create-field"><label>Augenfarbe</label>${swatches(C.EYE_COLORS, "eyeColor")}</div>
-        <div class="create-field"><label>Augenbrauen</label>${chips(C.BROWS, "brow")}</div>`;
-    } else if (step.id === "style") {
-      html += `<div class="create-field"><label>Outfit</label>${chips(C.OUTFITS, "outfit")}</div>
-        <div class="create-field"><label>Akzent</label>${swatches(C.ACCENTS, "accent")}</div>
-        <div class="create-field"><label>Accessoire</label>${chips(C.ACCESSORIES, "accessory")}</div>`;
-    } else if (step.id === "class") {
-      html += `<div class="create-field"><label>Klasse</label>${chips(C.CLASSES, "classId")}</div>`;
-      const cls = C.classStats(state.draft.classId);
-      html += `<p class="lead">${cls.desc}</p>
-        <div class="create-stats">
-          <div class="create-stat"><span>ATK</span><strong>${cls.atk}</strong></div>
-          <div class="create-stat"><span>HP</span><strong>${cls.maxHp}</strong></div>
-          <div class="create-stat"><span>Rolle</span><strong>${cls.label}</strong></div>
-        </div>`;
+      html += `<div class="create-field"><label>Geschlecht</label>${chips(C.BODIES, "body")}</div>
+        <p class="lead">3D-Basiskörper mit Unterwäsche. Drehen: Finger über dem Modell wischen.</p>`;
     } else if (step.id === "done") {
-      const cls = C.classStats(state.draft.classId);
-      html += `<p class="lead"><strong>${state.draft.name.trim() || "Dein Held"}</strong> · ${cls.label}</p>
-        <p class="lead">Du spielst mit genau diesem Charakter. Gruppen &amp; Gilden kommen später.</p>`;
+      const g = state.draft.gender || state.draft.body || "female";
+      html += `<p class="lead"><strong>${state.draft.name.trim() || "Dein Held"}</strong> · ${g === "male" ? "Mann" : "Frau"}</p>
+        <p class="lead">Als Nächstes: Haare, Gesicht, Outfits auf diesem 3D-Körper.</p>`;
     }
 
     html += `</div>`;
@@ -411,13 +394,9 @@
       const key = btn.dataset.key;
       const val = btn.dataset.val;
       state.draft[key] = val;
-      if (key === "outfit") {
-        const o = C.OUTFITS.find((x) => x.id === val);
-        if (o?.classId) state.draft.classId = o.classId;
-      }
-      if (key === "classId") {
-        const cls = C.classStats(val);
-        if (cls?.outfit) state.draft.outfit = cls.outfit;
+      if (key === "body") {
+        state.draft.gender = val === "male" ? "male" : "female";
+        state.draft.body = state.draft.gender;
       }
       renderCreateStep();
     });
@@ -442,7 +421,12 @@
         state.draft.name = "Liora";
       }
       if (step.id === "done") {
-        state.character = { ...state.draft, name: state.draft.name.trim() || "Liora" };
+        state.character = {
+          ...state.draft,
+          name: state.draft.name.trim() || "Liora",
+          gender: state.draft.gender || state.draft.body || "female",
+          body: state.draft.gender || state.draft.body || "female",
+        };
         state.gold = 40;
         state.heroLevel = 1;
         state.exp = 0;

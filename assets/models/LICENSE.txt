@@ -1,0 +1,3 @@
+Base body meshes derived from MakeHuman hm08 basemesh + macrodetail targets.
+Released as CC0 1.0 by Data Collection AB, Joel Palmius, Jonas Hauquier (2020).
+Processed for Knufforia with underwear material regions.

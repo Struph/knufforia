@@ -33,6 +33,17 @@
   display: grid;
   place-items: center;
   min-height: 0;
+  position: relative;
+}
+.create-preview-stage canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  border-radius: 0.6rem;
+}
+.create-preview .avatar-rig.avatar-art {
+  width: min(38vw, 200px);
+  height: min(62vh, 300px);
 }
 
 .create-preview .avatar-rig {
