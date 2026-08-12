@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#7ec8b8" />
+  <title>Knufforia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐰</text></svg>" />
+</head>
+<body>
+  <div class="sky" aria-hidden="true">
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="sparkles"></div>
+  </div>
+
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <p class="brand-name">Knufforia</p>
+        <p class="brand-tag">Arbeitstitel · Idle Fantasy</p>
+      </div>
+      <button type="button" class="icon-btn" id="btn-help" aria-label="Hilfe">?</button>
+    </header>
+
+    <section class="stats" aria-label="Ressourcen">
+      <div class="stat">
+        <span class="stat-label">Gold</span>
+        <span class="stat-value" id="gold">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Stufe</span>
+        <span class="stat-value" id="hero-level">1</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Kapitel</span>
+        <span class="stat-value" id="stage">1</span>
+      </div>
+    </section>
+
+    <section class="arena" aria-label="Kampf">
+      <div class="fighter hero-side">
+        <div class="chibi hero" id="hero-sprite" aria-hidden="true">
+          <div class="ear left"></div>
+          <div class="ear right"></div>
+          <div class="face">
+            <div class="eye l"></div>
+            <div class="eye r"></div>
+            <div class="blush l"></div>
+            <div class="blush r"></div>
+            <div class="mouth"></div>
+          </div>
+          <div class="scarf"></div>
+        </div>
+        <p class="fighter-name" id="hero-name">Lumi</p>
+        <div class="hp-bar"><div class="hp-fill" id="hero-hp"></div></div>
+        <p class="fighter-meta" id="hero-power">ATK 10</p>
+      </div>
+
+      <div class="vs" id="battle-fx">VS</div>
+
+      <div class="fighter enemy-side">
+        <div class="chibi enemy" id="enemy-sprite" aria-hidden="true">
+          <div class="blob-body"></div>
+          <div class="blob-eye l"></div>
+          <div class="blob-eye r"></div>
+          <div class="blob-horn"></div>
+        </div>
+        <p class="fighter-name" id="enemy-name">Flauschgeist</p>
+        <div class="hp-bar"><div class="hp-fill enemy" id="enemy-hp"></div></div>
+        <p class="fighter-meta" id="enemy-power">HP 30</p>
+      </div>
+    </section>
+
+    <p class="log" id="log">Lumi betritt die Wiesen von Knufforia…</p>
+
+    <div class="exp-wrap">
+      <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
+      <p class="exp-text" id="exp-text">EXP 0 / 20</p>
+    </div>
+
+    <section class="actions">
+      <button type="button" class="btn primary" id="btn-upgrade">
+        Upgrade ATK
+        <span class="btn-sub" id="upgrade-cost">Kosten: 25 Gold</span>
+      </button>
+      <button type="button" class="btn soft" id="btn-heal">
+        Heiltrank
+        <span class="btn-sub" id="heal-cost">Kosten: 15 Gold</span>
+      </button>
+    </section>
+
+    <p class="hint">Kampf läuft automatisch · Fortschritt wird gespeichert</p>
+  </div>
+
+  <div class="modal hidden" id="modal-afk" role="dialog" aria-labelledby="afk-title">
+    <div class="modal-card">
+      <h2 id="afk-title">Willkommen zurück!</h2>
+      <p id="afk-text">Während du weg warst, hat Lumi Gold gesammelt.</p>
+      <p class="afk-gold" id="afk-gold">+0 Gold</p>
+      <button type="button" class="btn primary" id="btn-claim-afk">Einsammeln</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="modal-help" role="dialog" aria-labelledby="help-title">
+    <div class="modal-card">
+      <h2 id="help-title">So spielt man</h2>
+      <ol class="help-list">
+        <li>Lumi kämpft von allein gegen knuffige Gegner.</li>
+        <li>Mit Gold kannst du ATK upgraden und heilen.</li>
+        <li>Wenn du später zurückkommst, gibt’s AFK-Gold.</li>
+        <li>Auf dem iPhone: Teilen → „Zum Home-Bildschirm“.</li>
+      </ol>
+      <button type="button" class="btn soft" id="btn-close-help">Verstanden</button>
+    </div>
+  </div>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
