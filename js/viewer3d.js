@@ -2,6 +2,11 @@ window.KnufforiaViewer3D = (() => {
   let THREE, GLTFLoader;
   let renderer, scene, camera, root, currentGender = "female", animId = 0;
   let loading = null;
+  let mixer = null;
+  let clock = null;
+  let baseYaw = 0.35;
+  let skeleton = null;
+  let dragging = false;
 
   async function loadThree() {
     if (THREE) return;
@@ -20,6 +25,7 @@ window.KnufforiaViewer3D = (() => {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xb8d4ce);
+    clock = new THREE.Clock();
 
     const w = Math.max(container.clientWidth || 280, 120);
     const h = Math.max(container.clientHeight || 360, 160);
@@ -45,7 +51,6 @@ window.KnufforiaViewer3D = (() => {
     root = new THREE.Group();
     scene.add(root);
 
-    let dragging = false;
     let lastX = 0;
     const el = renderer.domElement;
     el.style.width = "100%";
@@ -63,22 +68,26 @@ window.KnufforiaViewer3D = (() => {
       if (!dragging || !root) return;
       const dx = e.clientX - lastX;
       lastX = e.clientX;
-      root.rotation.y += dx * 0.01;
+      baseYaw += dx * 0.01;
     });
 
     const tick = () => {
       animId = requestAnimationFrame(tick);
       if (!renderer) return;
+      const dt = clock ? clock.getDelta() : 0.016;
+      if (mixer) mixer.update(dt);
       if (root) {
-        // gentle idle sway — feels less like a stiff mannequin
-        root.rotation.y = 0.35 + Math.sin(performance.now() * 0.0007) * 0.08;
+        const sway = dragging ? 0 : Math.sin(performance.now() * 0.0007) * 0.06;
+        root.rotation.y = baseYaw + sway;
       }
       const cw = container.clientWidth;
       const ch = container.clientHeight;
       if (cw > 0 && ch > 0) {
-        const bw = renderer.domElement.width;
-        const bh = renderer.domElement.height;
-        if (bw !== Math.floor(cw * renderer.getPixelRatio()) || bh !== Math.floor(ch * renderer.getPixelRatio())) {
+        const pr = renderer.getPixelRatio();
+        if (
+          renderer.domElement.width !== Math.floor(cw * pr) ||
+          renderer.domElement.height !== Math.floor(ch * pr)
+        ) {
           renderer.setSize(cw, ch, false);
           camera.aspect = cw / ch;
           camera.updateProjectionMatrix();
@@ -93,6 +102,12 @@ window.KnufforiaViewer3D = (() => {
     await loadThree();
     currentGender = gender === "male" ? "male" : "female";
     if (!root) return;
+
+    if (mixer) {
+      mixer.stopAllAction();
+      mixer = null;
+    }
+    skeleton = null;
 
     while (root.children.length) {
       const c = root.children[0];
@@ -113,6 +128,13 @@ window.KnufforiaViewer3D = (() => {
         url,
         (gltf) => {
           const model = gltf.scene;
+          model.traverse((o) => {
+            if (o.isSkinnedMesh && o.skeleton) skeleton = o.skeleton;
+            if (o.isMesh) {
+              o.frustumCulled = false;
+            }
+          });
+
           const box = new THREE.Box3().setFromObject(model);
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
@@ -121,9 +143,17 @@ window.KnufforiaViewer3D = (() => {
           const scale = 1.7 / Math.max(size.y, 0.001);
           model.scale.setScalar(scale);
           root.add(model);
-          root.rotation.y = 0.35;
+          baseYaw = 0.35;
+          root.rotation.y = baseYaw;
           camera.position.set(0, 0.95, 3.35);
           camera.lookAt(0, 0.85, 0);
+
+          if (gltf.animations && gltf.animations.length) {
+            mixer = new THREE.AnimationMixer(model);
+            const clip = gltf.animations.find((a) => /idle/i.test(a.name)) || gltf.animations[0];
+            const action = mixer.clipAction(clip);
+            action.play();
+          }
           resolve();
         },
         undefined,
@@ -132,8 +162,15 @@ window.KnufforiaViewer3D = (() => {
     });
   }
 
+  function getBoneNames() {
+    if (!skeleton) return [];
+    return skeleton.bones.map((b) => b.name);
+  }
+
   function dispose() {
     cancelAnimationFrame(animId);
+    mixer?.stopAllAction();
+    mixer = null;
     renderer?.dispose?.();
     renderer = null;
   }
@@ -142,6 +179,10 @@ window.KnufforiaViewer3D = (() => {
     mount,
     show,
     dispose,
+    getBoneNames,
+    get skeleton() {
+      return skeleton;
+    },
     get gender() {
       return currentGender;
     },
