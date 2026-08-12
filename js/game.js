@@ -182,6 +182,15 @@
       const slot = boss ? "mid" : FORMATION_SLOTS[i] || FORMATION_SLOTS[FORMATION_SLOTS.length - 1];
       el.enemyLane.appendChild(unitNode(e, "foes", slot));
     });
+    // Start visible idle motion for all units
+    requestAnimationFrame(() => {
+      el.heroLane.querySelectorAll(".human-rig, .puppet").forEach((rig) => {
+        window.KnufforiaPuppets.setAnim(rig, "idle");
+      });
+      el.enemyLane.querySelectorAll(".human-rig, .puppet").forEach((rig) => {
+        window.KnufforiaPuppets.setAnim(rig, "idle");
+      });
+    });
   }
 
   function findUnitEl(side, index) {
@@ -225,30 +234,38 @@
   }
 
   async function moveUnitToTarget(node, targetNode) {
+    // Measure from home pose so deltas stay correct
+    node.style.transition = "none";
     node.style.transform = homeTransform(node);
-    await wait(16);
+    void node.offsetWidth;
+    node.style.transition = "";
+
     const a = node.getBoundingClientRect();
     const b = targetNode.getBoundingClientRect();
-    const gap = 38;
+    const gap = 42;
     let dx = b.left + b.width / 2 - (a.left + a.width / 2);
     let dy = b.top + b.height / 2 - (a.top + a.height / 2);
     const len = Math.hypot(dx, dy) || 1;
     dx -= (dx / len) * gap;
     dy -= (dy / len) * gap;
+
     node.classList.add("combat-active");
+    node.style.transition = "transform 0.55s cubic-bezier(0.22, 0.9, 0.28, 1)";
     if (node.classList.contains("boss-unit")) {
       node.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     } else {
       node.style.transform = `translate(${dx}px, ${dy}px)`;
     }
-    await wait(480);
+    await wait(560);
   }
 
   async function moveUnitHome(node) {
     node.classList.add("combat-returning");
+    node.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
     node.style.transform = homeTransform(node);
-    await wait(420);
+    await wait(520);
     node.classList.remove("combat-active", "combat-returning");
+    node.style.transition = "";
   }
 
   async function choreographedAttack(attacker, atkIndex, target, defIndex, side) {
@@ -256,16 +273,20 @@
     const defNode = findUnitEl(side === "heroes" ? "foes" : "heroes", defIndex);
     if (!atkNode || !defNode) return;
 
-    const puppet = atkNode.querySelector(".puppet");
-    const defPuppet = defNode.querySelector(".puppet");
+    const puppet = atkNode.querySelector(".human-rig, .puppet");
+    const defPuppet = defNode.querySelector(".human-rig, .puppet");
+    if (!puppet) return;
 
+    // Bring attacker to front while animating
+    atkNode.style.zIndex = "30";
     window.KnufforiaPuppets.setAnim(puppet, "walk");
+    await wait(40);
     await moveUnitToTarget(atkNode, defNode);
 
     window.KnufforiaPuppets.setAnim(puppet, "attack");
-    await wait(180);
+    await wait(200);
     sparkAt(defNode);
-    window.KnufforiaPuppets.setAnim(defPuppet, "hurt");
+    if (defPuppet) window.KnufforiaPuppets.setAnim(defPuppet, "hurt");
 
     const dmg = attacker.atk + Math.floor(Math.random() * 4);
     target.hp = Math.max(0, target.hp - dmg);
@@ -280,11 +301,12 @@
     }
     renderHud();
 
-    await wait(220);
-    window.KnufforiaPuppets.setAnim(defPuppet, "idle");
+    await wait(240);
+    if (defPuppet) window.KnufforiaPuppets.setAnim(defPuppet, "idle");
     window.KnufforiaPuppets.setAnim(puppet, "walk");
     await moveUnitHome(atkNode);
     window.KnufforiaPuppets.setAnim(puppet, "idle");
+    atkNode.style.zIndex = "";
   }
 
   function setLog(text) {
