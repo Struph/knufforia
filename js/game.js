@@ -1,47 +1,39 @@
 (() => {
-  const SAVE_KEY = "knufforia-save-v1";
-  const TICK_MS = 900;
+  const SAVE_KEY = "knufforia-save-v2";
+  const TICK_MS = 750;
   const AFK_CAP_HOURS = 8;
   const AFK_GOLD_PER_MIN = 2;
 
-  const PLACE_NAMES = {
-    battle: "Kampfhain",
-    arena: "Sternenarena",
-    shop: "Mondbasar",
-  };
+  const HERO_TEMPLATES = [
+    { id: "lumi", name: "Lumi", img: "assets/heroes/hero-lumi.webp", atk: 12, maxHp: 110 },
+    { id: "sora", name: "Sora", img: "assets/heroes/hero-sora.webp", atk: 11, maxHp: 105 },
+    { id: "mika", name: "Mika", img: "assets/heroes/hero-mika.webp", atk: 14, maxHp: 100 },
+    { id: "hana", name: "Hana", img: "assets/heroes/hero-hana.webp", atk: 10, maxHp: 120 },
+    { id: "nori", name: "Nori", img: "assets/heroes/hero-nori.webp", atk: 13, maxHp: 95 },
+  ];
 
-  const ENEMIES = [
-    { name: "Knuffork", variant: "grunt" },
-    { name: "Zahnork", variant: "grunt" },
-    { name: "Moosork", variant: "brute" },
-    { name: "Keulenork", variant: "brute" },
-    { name: "Runenork", variant: "shaman" },
-    { name: "Nebelork", variant: "shaman" },
-    { name: "Kriegsork", variant: "boss" },
-    { name: "Häuptling Grobzahn", variant: "boss" },
+  const ORC_POOL = [
+    { name: "Knuffork", img: "assets/enemies/orc-grunt.webp", atk: 5, hpMul: 1 },
+    { name: "Zahnork", img: "assets/enemies/orc-grunt.webp", atk: 6, hpMul: 1.05 },
+    { name: "Keulenork", img: "assets/enemies/orc-brute.webp", atk: 7, hpMul: 1.2 },
+    { name: "Moosork", img: "assets/enemies/orc-brute.webp", atk: 7, hpMul: 1.25 },
+    { name: "Runenork", img: "assets/enemies/orc-shaman.webp", atk: 8, hpMul: 1.1 },
+    { name: "Kriegsork", img: "assets/enemies/orc-warrior.webp", atk: 9, hpMul: 1.3 },
   ];
 
   const el = {
     screens: {
-      world: document.getElementById("screen-world"),
       battle: document.getElementById("screen-battle"),
       arena: document.getElementById("screen-arena"),
       shop: document.getElementById("screen-shop"),
     },
     gold: document.getElementById("gold"),
-    goldWorld: document.getElementById("gold-world"),
     goldShop: document.getElementById("gold-shop"),
-    levelWorld: document.getElementById("level-world"),
-    heroLevel: document.getElementById("hero-level"),
-    stage: document.getElementById("stage"),
-    heroHp: document.getElementById("hero-hp"),
-    enemyHp: document.getElementById("enemy-hp"),
-    heroPower: document.getElementById("hero-power"),
-    enemyPower: document.getElementById("enemy-power"),
-    enemyName: document.getElementById("enemy-name"),
-    heroSprite: document.getElementById("hero-sprite"),
-    enemySprite: document.getElementById("enemy-sprite"),
-    battleFx: document.getElementById("battle-fx"),
+    teamLevel: document.getElementById("team-level"),
+    roomLevel: document.getElementById("room-level"),
+    bossTag: document.getElementById("boss-tag"),
+    heroLane: document.getElementById("hero-lane"),
+    enemyLane: document.getElementById("enemy-lane"),
     log: document.getElementById("log"),
     expFill: document.getElementById("exp-fill"),
     expText: document.getElementById("exp-text"),
@@ -65,271 +57,427 @@
   };
 
   const state = {
-    screen: "world",
+    screen: "battle",
     gold: 0,
-    heroLevel: 1,
+    teamLevel: 1,
     exp: 0,
-    atk: 10,
-    maxHp: 100,
-    hp: 100,
-    stage: 1,
-    enemy: null,
+    atkBonus: 0,
+    room: 1,
+    heroes: [],
+    enemies: [],
+    side: "heroes", // whose turn chain
+    index: 0,
+    busyRoom: false,
+    arenaBusy: false,
     lastSeen: Date.now(),
     pendingAfkGold: 0,
-    arenaBusy: false,
+    paused: false,
   };
 
+  function isBossRoom(room) {
+    return room > 0 && room % 10 === 0;
+  }
+
   function expToLevel(level) {
-    return 16 + level * 8;
+    return 20 + level * 10;
   }
 
   function upgradeCost() {
-    return 20 + state.atk * 3;
+    return 25 + state.atkBonus * 8 + state.teamLevel * 3;
   }
 
   function healCost() {
-    return 12 + Math.floor(state.heroLevel * 1.5);
+    return 15 + state.teamLevel * 2 + Math.floor(state.room / 2);
   }
 
   function arenaWager() {
-    return 20 + state.stage * 8;
+    return 25 + state.room * 6;
   }
 
-  function enemyStats(stage) {
-    const template = ENEMIES[(stage - 1) % ENEMIES.length];
-    const maxHp = 24 + stage * 14;
-    return {
-      name: template.name,
-      variant: template.variant,
-      maxHp,
-      hp: maxHp,
-      atk: 4 + Math.floor(stage * 1.6),
-    };
+  function makeHeroes() {
+    return HERO_TEMPLATES.map((t) => ({
+      ...t,
+      atk: t.atk + state.atkBonus + (state.teamLevel - 1) * 2,
+      maxHp: t.maxHp + (state.teamLevel - 1) * 10,
+      hp: t.maxHp + (state.teamLevel - 1) * 10,
+      dead: false,
+    }));
   }
 
-  function spawnEnemy() {
-    state.enemy = enemyStats(state.stage);
-    el.enemyName.textContent = state.enemy.name;
-    window.KnufforiaCharacters.mountOrc(el.enemySprite, state.enemy.variant);
-    render();
+  function scaleForRoom(base, room) {
+    return Math.floor(base * (1 + (room - 1) * 0.18));
+  }
+
+  function makeWave(room) {
+    if (isBossRoom(room)) {
+      const hp = scaleForRoom(220, room);
+      return [
+        {
+          name: `Häuptling Raum ${room}`,
+          img: "assets/enemies/orc-boss.webp",
+          atk: scaleForRoom(14, room),
+          maxHp: hp,
+          hp,
+          dead: false,
+          boss: true,
+        },
+      ];
+    }
+
+    return Array.from({ length: 5 }, (_, i) => {
+      const template = ORC_POOL[(room + i) % ORC_POOL.length];
+      const maxHp = scaleForRoom(28 * template.hpMul, room);
+      return {
+        name: template.name,
+        img: template.img,
+        atk: scaleForRoom(template.atk, room),
+        maxHp,
+        hp: maxHp,
+        dead: false,
+        boss: false,
+      };
+    });
+  }
+
+  function living(list) {
+    return list.filter((u) => !u.dead && u.hp > 0);
+  }
+
+  function firstLiving(list) {
+    return list.find((u) => !u.dead && u.hp > 0) || null;
+  }
+
+  function unitNode(unit, side) {
+    const wrap = document.createElement("div");
+    wrap.className = `unit${unit.boss ? " boss-unit" : ""}${unit.dead ? " dead" : ""}`;
+    wrap.dataset.id = unit.id || unit.name;
+    wrap.dataset.side = side;
+    wrap.innerHTML = `
+      <img class="unit-art" src="${unit.img}" alt="" />
+      <p class="unit-name">${unit.name}</p>
+      <div class="unit-hp"><span style="width:${Math.max(0, (unit.hp / unit.maxHp) * 100)}%"></span></div>
+    `;
+    return wrap;
+  }
+
+  function renderLanes() {
+    el.heroLane.innerHTML = "";
+    el.enemyLane.innerHTML = "";
+    state.heroes.forEach((h) => el.heroLane.appendChild(unitNode(h, "heroes")));
+    state.enemies.forEach((e) => el.enemyLane.appendChild(unitNode(e, "foes")));
+  }
+
+  function findUnitEl(side, index) {
+    const lane = side === "heroes" ? el.heroLane : el.enemyLane;
+    return lane.children[index] || null;
+  }
+
+  function floatText(text, node, kind = "") {
+    if (!node) return;
+    const r = node.getBoundingClientRect();
+    const tip = document.createElement("div");
+    tip.className = `float-text${kind ? ` ${kind}` : ""}`;
+    tip.textContent = text;
+    tip.style.left = `${r.left + r.width / 2 - 10}px`;
+    tip.style.top = `${r.top + 8}px`;
+    document.body.appendChild(tip);
+    setTimeout(() => tip.remove(), 850);
   }
 
   function setLog(text) {
     el.log.textContent = text;
   }
 
-  function floatText(text, x, y, kind = "") {
-    const node = document.createElement("div");
-    node.className = `float-text${kind ? ` ${kind}` : ""}`;
-    node.textContent = text;
-    node.style.left = `${x}px`;
-    node.style.top = `${y}px`;
-    document.body.appendChild(node);
-    setTimeout(() => node.remove(), 900);
-  }
-
-  function centerOf(node) {
-    const r = node.getBoundingClientRect();
-    return { x: r.left + r.width / 2 - 12, y: r.top + 8 };
-  }
-
-  function showScreen(name) {
-    state.screen = name;
-    Object.entries(el.screens).forEach(([key, node]) => {
-      node.classList.toggle("active", key === name);
-    });
-    if (name === "battle" && !state.enemy) spawnEnemy();
-    render();
-  }
-
-  function travelTo(name) {
-    const label = PLACE_NAMES[name] || name;
-    el.travelText.textContent = `Unterwegs nach ${label}…`;
-    el.travelOverlay.classList.remove("hidden");
-    setTimeout(() => {
-      el.travelOverlay.classList.add("hidden");
-      showScreen(name);
-    }, 700);
-  }
-
-  function render() {
+  function renderHud() {
     const goldText = Math.floor(state.gold).toLocaleString("de-DE");
     el.gold.textContent = goldText;
-    el.goldWorld.textContent = goldText;
     el.goldShop.textContent = goldText;
-    el.levelWorld.textContent = String(state.heroLevel);
-    el.heroLevel.textContent = String(state.heroLevel);
-    el.stage.textContent = String(state.stage);
-    el.heroPower.textContent = `ATK ${state.atk}`;
-    el.heroHp.style.width = `${Math.max(0, (state.hp / state.maxHp) * 100)}%`;
+    el.teamLevel.textContent = String(state.teamLevel);
+    el.roomLevel.textContent = String(state.room);
+    el.bossTag.classList.toggle("hidden", !isBossRoom(state.room));
 
-    const need = expToLevel(state.heroLevel);
+    const need = expToLevel(state.teamLevel);
     el.expFill.style.width = `${Math.min(100, (state.exp / need) * 100)}%`;
-    el.expText.textContent = `EXP ${state.exp} / ${need}`;
+    el.expText.textContent = `Team-EXP ${state.exp} / ${need}`;
 
     el.upgradeCost.textContent = `${upgradeCost()} Gold`;
     el.healCost.textContent = `${healCost()} Gold`;
     el.btnUpgrade.disabled = state.gold < upgradeCost();
-    el.btnHeal.disabled = state.gold < healCost() || state.hp >= state.maxHp;
+    const wounded = state.heroes.some((h) => h.hp < h.maxHp);
+    el.btnHeal.disabled = state.gold < healCost() || !wounded;
 
     const wager = arenaWager();
     el.arenaWager.textContent = String(wager);
     el.btnArenaFight.disabled = state.arenaBusy || state.gold < wager;
 
-    if (state.enemy) {
-      el.enemyPower.textContent = `HP ${Math.max(0, Math.ceil(state.enemy.hp))}`;
-      el.enemyHp.style.width = `${Math.max(0, (state.enemy.hp / state.enemy.maxHp) * 100)}%`;
-    }
+    // refresh hp bars without full rebuild when possible
+    state.heroes.forEach((h, i) => {
+      const node = el.heroLane.children[i];
+      if (!node) return;
+      node.classList.toggle("dead", h.dead);
+      const bar = node.querySelector(".unit-hp > span");
+      if (bar) bar.style.width = `${Math.max(0, (h.hp / h.maxHp) * 100)}%`;
+    });
+    state.enemies.forEach((e, i) => {
+      const node = el.enemyLane.children[i];
+      if (!node) return;
+      node.classList.toggle("dead", e.dead);
+      const bar = node.querySelector(".unit-hp > span");
+      if (bar) bar.style.width = `${Math.max(0, (e.hp / e.maxHp) * 100)}%`;
+    });
   }
 
   function gainExp(amount) {
     state.exp += amount;
-    let need = expToLevel(state.heroLevel);
+    let need = expToLevel(state.teamLevel);
     while (state.exp >= need) {
       state.exp -= need;
-      state.heroLevel += 1;
-      state.atk += 2;
-      state.maxHp += 12;
-      state.hp = state.maxHp;
-      setLog(`Level up! Lumi ist jetzt Stufe ${state.heroLevel}.`);
-      need = expToLevel(state.heroLevel);
+      state.teamLevel += 1;
+      state.heroes.forEach((h) => {
+        h.atk += 2;
+        h.maxHp += 10;
+        if (!h.dead) h.hp = Math.min(h.maxHp, h.hp + 10);
+      });
+      setLog(`Team-Level ${state.teamLevel}! Alle Heldinnen werden stärker.`);
+      need = expToLevel(state.teamLevel);
     }
   }
 
-  function defeatEnemy() {
-    const goldGain = 8 + state.stage * 3;
-    const expGain = 5 + Math.floor(state.stage * 1.4);
-    state.gold += goldGain;
-    gainExp(expGain);
-    setLog(`${state.enemy.name} besiegt! +${goldGain} Gold, +${expGain} EXP`);
-    const p = centerOf(el.enemySprite);
-    floatText(`+${goldGain}★`, p.x, p.y);
-    state.stage += 1;
-    spawnEnemy();
+  function showScreen(name) {
+    state.screen = name;
+    state.paused = name !== "battle";
+    Object.entries(el.screens).forEach(([key, node]) => {
+      node.classList.toggle("active", key === name);
+    });
+    renderHud();
   }
 
-  function battleTick() {
-    if (state.screen !== "battle" || !state.enemy || state.arenaBusy) return;
+  function nextRoom() {
+    state.busyRoom = true;
+    state.paused = true;
+    const cleared = state.room;
+    const goldGain = isBossRoom(cleared)
+      ? 80 + cleared * 8
+      : 18 + cleared * 4;
+    const expGain = isBossRoom(cleared) ? 30 + cleared : 10 + Math.floor(cleared * 1.2);
+    state.gold += goldGain;
+    gainExp(expGain);
 
-    el.heroSprite.classList.remove("attack");
-    void el.heroSprite.offsetWidth;
-    el.heroSprite.classList.add("attack");
-    el.battleFx.classList.add("hit");
-    setTimeout(() => el.battleFx.classList.remove("hit"), 160);
+    el.travelText.textContent = isBossRoom(cleared)
+      ? `Boss besiegt! Raum ${cleared + 1}…`
+      : `Raum ${cleared} geschafft! Weiter…`;
+    el.travelOverlay.classList.remove("hidden");
 
-    const heroDmg = state.atk + Math.floor(Math.random() * 3);
-    state.enemy.hp -= heroDmg;
-    el.enemySprite.classList.remove("hurt");
-    void el.enemySprite.offsetWidth;
-    el.enemySprite.classList.add("hurt");
-    const ep = centerOf(el.enemySprite);
-    floatText(`-${heroDmg}`, ep.x, ep.y, "dmg");
-
-    if (state.enemy.hp <= 0) {
-      defeatEnemy();
+    setTimeout(() => {
+      state.room += 1;
+      // heal a bit between rooms
+      state.heroes.forEach((h) => {
+        h.dead = false;
+        h.hp = Math.min(h.maxHp, Math.max(h.hp, Math.ceil(h.maxHp * 0.55)));
+      });
+      state.enemies = makeWave(state.room);
+      state.side = "heroes";
+      state.index = 0;
+      renderLanes();
+      setLog(
+        isBossRoom(state.room)
+          ? `Boss-Raum ${state.room}! Der Häuptling blockiert den Weg.`
+          : `Raum ${state.room}: Neue Orks versperren den Pfad.`
+      );
+      el.travelOverlay.classList.add("hidden");
+      state.busyRoom = false;
+      state.paused = state.screen !== "battle";
       save();
-      render();
+      renderHud();
+    }, 900);
+  }
+
+  function wipeRecover() {
+    state.paused = true;
+    setLog("Das Team fällt… aber steht wieder auf. Raum bleibt.");
+    state.heroes.forEach((h) => {
+      h.dead = false;
+      h.hp = Math.ceil(h.maxHp * 0.45);
+    });
+    // soft reset current wave a bit
+    state.enemies = makeWave(state.room);
+    state.side = "heroes";
+    state.index = 0;
+    renderLanes();
+    setTimeout(() => {
+      state.paused = state.screen !== "battle";
+      save();
+      renderHud();
+    }, 700);
+  }
+
+  function attackOnce() {
+    if (state.paused || state.busyRoom || state.screen !== "battle") return;
+
+    if (!living(state.enemies).length) {
+      nextRoom();
+      return;
+    }
+    if (!living(state.heroes).length) {
+      wipeRecover();
       return;
     }
 
-    const enemyDmg = Math.max(1, state.enemy.atk - Math.floor(state.heroLevel / 3));
-    state.hp = Math.max(0, state.hp - enemyDmg);
+    const attackers = state.side === "heroes" ? state.heroes : state.enemies;
+    const defenders = state.side === "heroes" ? state.enemies : state.heroes;
 
-    if (state.hp <= 0) {
-      state.hp = Math.ceil(state.maxHp * 0.45);
-      state.stage = Math.max(1, state.stage - 1);
-      spawnEnemy();
-      setLog("Lumi braucht eine Pause… ein Kapitel zurück, aber Gold bleibt!");
+    // advance index to next living attacker
+    let tries = 0;
+    while (tries < attackers.length && (attackers[state.index].dead || attackers[state.index].hp <= 0)) {
+      state.index = (state.index + 1) % attackers.length;
+      tries += 1;
+    }
+    if (tries >= attackers.length) {
+      state.side = state.side === "heroes" ? "enemies" : "heroes";
+      state.index = 0;
+      return;
+    }
+
+    const atkIndex = state.index;
+    const attacker = attackers[atkIndex];
+    const target = firstLiving(defenders);
+    if (!target) {
+      if (defenders === state.enemies) nextRoom();
+      else wipeRecover();
+      return;
+    }
+    const defIndex = defenders.indexOf(target);
+
+    const atkNode = findUnitEl(state.side === "heroes" ? "heroes" : "foes", atkIndex);
+    const defNode = findUnitEl(state.side === "heroes" ? "foes" : "heroes", defIndex);
+
+    if (atkNode) {
+      atkNode.classList.remove("attack-hero", "attack-foe");
+      void atkNode.offsetWidth;
+      atkNode.classList.add(state.side === "heroes" ? "attack-hero" : "attack-foe");
+    }
+    if (defNode) {
+      defNode.classList.remove("hurt");
+      void defNode.offsetWidth;
+      defNode.classList.add("hurt");
+    }
+
+    const dmg = attacker.atk + Math.floor(Math.random() * 4);
+    target.hp = Math.max(0, target.hp - dmg);
+    floatText(`-${dmg}`, defNode, "dmg");
+
+    if (target.hp <= 0) {
+      target.dead = true;
+      target.hp = 0;
+      setLog(`${attacker.name} besiegt ${target.name}!`);
     } else {
-      setLog(`Lumi trifft für ${heroDmg}. ${state.enemy.name} kontert für ${enemyDmg}.`);
+      setLog(`${attacker.name} trifft ${target.name} für ${dmg}.`);
+    }
+
+    const next = state.index + 1;
+    if (next >= attackers.length) {
+      state.side = state.side === "heroes" ? "enemies" : "heroes";
+      state.index = 0;
+    } else {
+      state.index = next;
+    }
+
+    renderHud();
+
+    if (!living(state.enemies).length) {
+      nextRoom();
+      return;
+    }
+    if (!living(state.heroes).length) {
+      wipeRecover();
+      return;
     }
 
     save();
-    render();
   }
 
   function doUpgrade() {
     const cost = upgradeCost();
     if (state.gold < cost) return;
     state.gold -= cost;
-    state.atk += 3;
-    el.arenaLog.textContent = `Sternenklinge gekauft! ATK jetzt ${state.atk}.`;
-    setLog(`Upgrade! ATK ist jetzt ${state.atk}.`);
+    state.atkBonus += 3;
+    state.heroes.forEach((h) => {
+      h.atk += 3;
+    });
+    setLog("Sternenklinge! Alle Heldinnen +3 ATK.");
     save();
-    render();
+    renderHud();
   }
 
   function doHeal() {
     const cost = healCost();
-    if (state.gold < cost || state.hp >= state.maxHp) return;
+    if (state.gold < cost) return;
     state.gold -= cost;
-    state.hp = state.maxHp;
-    setLog("Kirschtrank! Lumi fühlt sich wieder flauschig.");
+    state.heroes.forEach((h) => {
+      h.dead = false;
+      h.hp = h.maxHp;
+    });
+    setLog("Kirschtrank! Das ganze Team ist geheilt.");
+    renderLanes();
     save();
-    render();
+    renderHud();
   }
 
   function runArenaFight() {
     const wager = arenaWager();
     if (state.arenaBusy || state.gold < wager) return;
-
     state.arenaBusy = true;
     state.gold -= wager;
-    el.arenaStatus.textContent = "Kampf läuft…";
+    el.arenaStatus.textContent = "Kampf…";
     el.arenaLog.textContent = "Lumi stellt sich dem Aren-Ork!";
-    render();
+    renderHud();
 
-    const enemyHp = 40 + state.stage * 22 + state.atk;
-    const enemyAtk = 6 + Math.floor(state.stage * 2.2);
-    let hp = enemyHp;
-    let heroHp = state.hp;
-    let rounds = 0;
+    let orcHp = 50 + state.room * 18 + state.atkBonus * 2;
+    const orcAtk = 8 + Math.floor(state.room * 1.8);
+    const teamAtk = state.heroes.reduce((s, h) => s + h.atk, 0) / state.heroes.length;
+    let heroHp = state.heroes.reduce((s, h) => s + h.hp, 0);
+    let round = 0;
 
     const timer = setInterval(() => {
-      rounds += 1;
-      const dmg = state.atk + Math.floor(Math.random() * 4);
-      hp -= dmg;
-      el.arenaLog.textContent = `Runde ${rounds}: Lumi trifft für ${dmg}. Ork noch ${Math.max(0, Math.ceil(hp))} HP.`;
+      round += 1;
+      const dmg = Math.floor(teamAtk + Math.random() * 6);
+      orcHp -= dmg;
+      el.arenaLog.textContent = `Runde ${round}: Team trifft für ${dmg}. Ork ${Math.max(0, Math.ceil(orcHp))} HP`;
 
-      if (hp <= 0) {
+      if (orcHp <= 0) {
         clearInterval(timer);
         const reward = Math.floor(wager * 2.5);
         state.gold += reward;
-        gainExp(8 + state.stage);
-        state.hp = Math.max(heroHp, Math.ceil(state.maxHp * 0.6));
+        gainExp(12 + state.room);
         state.arenaBusy = false;
         el.arenaStatus.textContent = "Sieg!";
         el.arenaLog.textContent = `Aren-Ork besiegt! +${reward} Gold`;
         save();
-        render();
+        renderHud();
         return;
       }
 
-      const hit = Math.max(1, enemyAtk - Math.floor(state.heroLevel / 4));
-      heroHp = Math.max(0, heroHp - hit);
-
+      heroHp -= Math.max(1, orcAtk - Math.floor(state.teamLevel / 3));
       if (heroHp <= 0) {
         clearInterval(timer);
-        state.hp = Math.ceil(state.maxHp * 0.35);
         state.arenaBusy = false;
         el.arenaStatus.textContent = "Niederlage";
-        el.arenaLog.textContent = "Der Aren-Ork war zu stark. Einsatz verloren.";
+        el.arenaLog.textContent = "Einsatz verloren.";
         save();
-        render();
+        renderHud();
       }
-    }, 700);
+    }, 650);
   }
 
   function save() {
     state.lastSeen = Date.now();
     const payload = {
       gold: state.gold,
-      heroLevel: state.heroLevel,
+      teamLevel: state.teamLevel,
       exp: state.exp,
-      atk: state.atk,
-      maxHp: state.maxHp,
-      hp: state.hp,
-      stage: state.stage,
+      atkBonus: state.atkBonus,
+      room: state.room,
+      heroes: state.heroes.map((h) => ({ id: h.id, hp: h.hp, maxHp: h.maxHp, atk: h.atk, dead: h.dead })),
       lastSeen: state.lastSeen,
     };
     try {
@@ -342,72 +490,89 @@
   function load() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return;
+      if (!raw) return false;
       const data = JSON.parse(raw);
       state.gold = data.gold ?? 0;
-      state.heroLevel = data.heroLevel ?? 1;
+      state.teamLevel = data.teamLevel ?? 1;
       state.exp = data.exp ?? 0;
-      state.atk = data.atk ?? 10;
-      state.maxHp = data.maxHp ?? 100;
-      state.hp = data.hp ?? state.maxHp;
-      state.stage = data.stage ?? 1;
+      state.atkBonus = data.atkBonus ?? 0;
+      state.room = data.room ?? 1;
       state.lastSeen = data.lastSeen ?? Date.now();
+      state.heroes = makeHeroes();
+      if (Array.isArray(data.heroes)) {
+        data.heroes.forEach((saved) => {
+          const h = state.heroes.find((x) => x.id === saved.id);
+          if (!h) return;
+          h.hp = saved.hp ?? h.maxHp;
+          h.maxHp = saved.maxHp ?? h.maxHp;
+          h.atk = saved.atk ?? h.atk;
+          h.dead = !!saved.dead;
+        });
+      }
+      return true;
     } catch (_) {
-      /* ignore */
+      return false;
     }
   }
 
   function computeAfk() {
-    const now = Date.now();
-    const minutes = Math.floor((now - state.lastSeen) / 60000);
+    const minutes = Math.floor((Date.now() - state.lastSeen) / 60000);
     if (minutes < 2) return 0;
-    const capped = Math.min(minutes, AFK_CAP_HOURS * 60);
-    return capped * AFK_GOLD_PER_MIN;
+    return Math.min(minutes, AFK_CAP_HOURS * 60) * AFK_GOLD_PER_MIN;
   }
 
   function showAfkIfNeeded() {
     const gain = computeAfk();
     if (gain <= 0) return;
     state.pendingAfkGold = gain;
-    const hours = Math.floor(gain / AFK_GOLD_PER_MIN / 60);
-    const mins = Math.floor(gain / AFK_GOLD_PER_MIN) % 60;
-    const timeLabel = hours > 0 ? `${hours} Std. ${mins} Min.` : `${mins} Min.`;
-    el.afkText.textContent = `Lumi hat ${timeLabel} für dich gesammelt (max. ${AFK_CAP_HOURS} Std.).`;
+    const mins = Math.floor(gain / AFK_GOLD_PER_MIN);
+    const hours = Math.floor(mins / 60);
+    const rem = mins % 60;
+    el.afkText.textContent =
+      hours > 0
+        ? `Dein Team hat ${hours} Std. ${rem} Min. gesammelt.`
+        : `Dein Team hat ${rem} Min. gesammelt.`;
     el.afkGold.textContent = `+${gain.toLocaleString("de-DE")} Gold`;
     el.modalAfk.classList.remove("hidden");
   }
 
-  function claimAfk() {
-    state.gold += state.pendingAfkGold;
-    state.pendingAfkGold = 0;
-    el.modalAfk.classList.add("hidden");
-    save();
-    render();
-  }
-
-  document.querySelectorAll(".place[data-screen]").forEach((btn) => {
-    btn.addEventListener("click", () => travelTo(btn.dataset.screen));
+  // wire UI
+  document.querySelectorAll("[data-screen]").forEach((btn) => {
+    btn.addEventListener("click", () => showScreen(btn.dataset.screen));
   });
-
   document.querySelectorAll("[data-back]").forEach((btn) => {
-    btn.addEventListener("click", () => showScreen("world"));
+    btn.addEventListener("click", () => showScreen("battle"));
   });
-
   el.btnUpgrade.addEventListener("click", doUpgrade);
   el.btnHeal.addEventListener("click", doHeal);
   el.btnArenaFight.addEventListener("click", runArenaFight);
   el.btnHelp.addEventListener("click", () => el.modalHelp.classList.remove("hidden"));
   el.btnCloseHelp.addEventListener("click", () => el.modalHelp.classList.add("hidden"));
-  el.btnClaimAfk.addEventListener("click", claimAfk);
+  el.btnClaimAfk.addEventListener("click", () => {
+    state.gold += state.pendingAfkGold;
+    state.pendingAfkGold = 0;
+    el.modalAfk.classList.add("hidden");
+    save();
+    renderHud();
+  });
 
-  window.KnufforiaCharacters.mountAll();
-  load();
-  spawnEnemy();
-  showScreen("world");
+  const loaded = load();
+  if (!loaded) state.heroes = makeHeroes();
+  state.enemies = makeWave(state.room);
+  state.side = "heroes";
+  state.index = 0;
+  renderLanes();
+  showScreen("battle");
+  setLog(
+    isBossRoom(state.room)
+      ? `Boss-Raum ${state.room} wartet.`
+      : `Raum ${state.room}: Der Weg ist versperrt.`
+  );
   showAfkIfNeeded();
   save();
+  renderHud();
 
-  setInterval(battleTick, TICK_MS);
+  setInterval(attackOnce, TICK_MS);
   setInterval(save, 15000);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") save();
