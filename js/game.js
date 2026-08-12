@@ -371,7 +371,7 @@
     } else if (step.id === "done") {
       const g = state.draft.gender || state.draft.body || "female";
       html += `<p class="lead"><strong>${state.draft.name.trim() || "Dein Held"}</strong> · ${g === "male" ? "Mann" : "Frau"}</p>
-        <p class="lead">Als Nächstes: Haare, Gesicht, Outfits auf diesem 3D-Körper.</p>`;
+        <p class="lead">Basiskörper fertig (Skin, Haare, Gesicht, Rig). Outfits folgen als Nächstes.</p>`;
     }
 
     html += `</div>`;
