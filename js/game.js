@@ -1,5 +1,5 @@
 (() => {
-  const SAVE_KEY = "knufforia-save-v5";
+  const SAVE_KEY = "knufforia-save-v6";
   const AFK_CAP_HOURS = 8;
   const AFK_GOLD_PER_MIN = 2;
   const FORMATION_SLOTS = ["front-a", "front-b", "mid", "back-a", "back-b"];
@@ -322,25 +322,12 @@
     state.paused = false;
   }
 
-  /* ===== Creator UI ===== */
-  let viewerReady = false;
-
-  async function ensureViewer() {
-    if (!window.KnufforiaViewer3D) return;
-    await window.KnufforiaViewer3D.mount(el.createPreview);
-    viewerReady = true;
-  }
-
+  /* ===== Creator UI (2D sprites) ===== */
   async function renderCreatePreview() {
     el.createNameLive.textContent = state.draft.name.trim() || "Dein Held";
     const g = state.draft.gender || state.draft.body || "female";
-    el.createClassLive.textContent = g === "male" ? "Mann · Basis" : "Frau · Basis";
-    try {
-      await ensureViewer();
-      await window.KnufforiaViewer3D.show(g);
-    } catch (err) {
-      el.createPreview.innerHTML = C.avatarHtml(state.draft);
-    }
+    el.createClassLive.textContent = g === "male" ? "Mann · 2D" : "Frau · 2D";
+    el.createPreview.innerHTML = C.avatarHtml(state.draft);
   }
 
   function chips(options, key) {
@@ -367,11 +354,11 @@
         <input id="in-name" type="text" maxlength="16" placeholder="z. B. Liora" value="${state.draft.name.replace(/"/g, "&quot;")}" /></div>`;
     } else if (step.id === "body") {
       html += `<div class="create-field"><label>Geschlecht</label>${chips(C.BODIES, "body")}</div>
-        <p class="lead">3D-Basiskörper mit Unterwäsche. Drehen: Finger über dem Modell wischen.</p>`;
+        <p class="lead">Fiesta-Style 2D-Held — Frau (violette Haare) oder Mann.</p>`;
     } else if (step.id === "done") {
       const g = state.draft.gender || state.draft.body || "female";
       html += `<p class="lead"><strong>${state.draft.name.trim() || "Dein Held"}</strong> · ${g === "male" ? "Mann" : "Frau"}</p>
-        <p class="lead">Basiskörper fertig (Skin, Haare, Gesicht, Rig). Outfits folgen als Nächstes.</p>`;
+        <p class="lead">2D-Held bereit. Outfits & Frisuren folgen als Nächstes.</p>`;
     }
 
     html += `</div>`;

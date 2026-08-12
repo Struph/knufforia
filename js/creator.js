@@ -1,8 +1,8 @@
 window.KnufforiaCreator = {
   STEPS: [
     { id: "name", title: "Name", lead: "Wie heißt dein Held?" },
-    { id: "body", title: "Körper", lead: "3D-Basiskörper mit Skeleton, Skin, Haaren & Gesicht." },
-    { id: "done", title: "Fertig", lead: "Basiskörper fertig – Outfits folgen als Nächstes." },
+    { id: "body", title: "Körper", lead: "Wähle deinen 2D-Helden (Fiesta-Stil)." },
+    { id: "done", title: "Fertig", lead: "Bereit fürs Abenteuer – Outfits folgen später." },
   ],
 
   BODIES: [
@@ -24,17 +24,17 @@ window.KnufforiaCreator = {
       body: "female",
       gender: "female",
       skin: "#f3d0b8",
-      hairStyle: "long",
-      hairColor: "#5a3a2a",
-      eyeColor: "#3a8fd4",
+      hairStyle: "shoulder",
+      hairColor: "#3a1a58",
+      eyeColor: "#b01828",
       brow: "neutral",
-      outfit: "mage",
-      cloth1: "#4db89a",
-      cloth2: "#2f8f76",
-      accent: "#ffd27a",
-      boot: "#3a2f45",
+      outfit: "rogue",
+      cloth1: "#2a2a32",
+      cloth2: "#4a4a58",
+      accent: "#c0c0d0",
+      boot: "#1a1a22",
       accessory: "none",
-      classId: "mage",
+      classId: "rogue",
     };
   },
 
@@ -42,19 +42,18 @@ window.KnufforiaCreator = {
     return this.CLASSES.find((c) => c.id === classId) || this.CLASSES[0];
   },
 
-  modelUrl(c) {
+  /** Canonical 2D hero art for creator, battle, and shop. */
+  spriteUrl(c) {
     const g = c.gender || c.body || "female";
-    return g === "male" ? "assets/models/base-male.glb" : "assets/models/base-female.glb";
+    return g === "male" ? "assets/avatar/base-male.png" : "assets/avatar/base-female.png";
   },
 
   previewUrl(c) {
-    const g = c.gender || c.body || "female";
-    return g === "male" ? "assets/models/preview-male.png" : "assets/models/preview-female.png";
+    return this.spriteUrl(c);
   },
 
-  /** Battle/shop still use a 2D stand-in until 3D combat is wired. */
   avatarHtml(c, extraClass = "") {
-    const src = this.previewUrl(c);
+    const src = this.spriteUrl(c);
     const name = (c.name || "Held").replace(/</g, "");
     return `
       <div class="avatar-rig avatar-art idle ${extraClass}">
