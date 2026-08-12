@@ -1,5 +1,5 @@
 (() => {
-  const SAVE_KEY = "knufforia-save-v3";
+  const SAVE_KEY = "knufforia-save-v4";
   const AFK_CAP_HOURS = 8;
   const AFK_GOLD_PER_MIN = 2;
   const FORMATION_SLOTS = ["front-a", "front-b", "mid", "back-a", "back-b"];
@@ -374,8 +374,6 @@
         <div class="create-field"><label>Augenbrauen</label>${chips(C.BROWS, "brow")}</div>`;
     } else if (step.id === "style") {
       html += `<div class="create-field"><label>Outfit</label>${chips(C.OUTFITS, "outfit")}</div>
-        <div class="create-field"><label>Hauptfarbe</label>${swatches(C.CLOTH1, "cloth1")}</div>
-        <div class="create-field"><label>Zweitfarbe</label>${swatches(C.CLOTH2, "cloth2")}</div>
         <div class="create-field"><label>Akzent</label>${swatches(C.ACCENTS, "accent")}</div>
         <div class="create-field"><label>Accessoire</label>${chips(C.ACCESSORIES, "accessory")}</div>`;
     } else if (step.id === "class") {
@@ -410,7 +408,17 @@
     el.createBody.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-key]");
       if (!btn) return;
-      state.draft[btn.dataset.key] = btn.dataset.val;
+      const key = btn.dataset.key;
+      const val = btn.dataset.val;
+      state.draft[key] = val;
+      if (key === "outfit") {
+        const o = C.OUTFITS.find((x) => x.id === val);
+        if (o?.classId) state.draft.classId = o.classId;
+      }
+      if (key === "classId") {
+        const cls = C.classStats(val);
+        if (cls?.outfit) state.draft.outfit = cls.outfit;
+      }
       renderCreateStep();
     });
     el.createSteps.addEventListener("click", (e) => {

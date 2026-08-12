@@ -77,6 +77,46 @@ window.KnufforiaPuppets = {
 
     if (rig.classList.contains("avatar-rig")) {
       const body = rig.querySelector(".av-body");
+      const sprite = rig.querySelector(".av-sprite");
+      const isArt = rig.classList.contains("avatar-art");
+      if (isArt) {
+        if (m === "idle") {
+          this._play(rig, [
+            [body, [{ transform: "translateY(0)" }, { transform: "translateY(-5px)" }, { transform: "translateY(0)" }], { duration: 1800, iterations: Infinity, easing: "ease-in-out" }],
+          ]);
+        } else if (m === "walk") {
+          this._play(rig, [
+            [body, [
+              { transform: "translateY(0) rotate(-2deg)" },
+              { transform: "translateY(-6px) rotate(2deg)" },
+              { transform: "translateY(0) rotate(-2deg)" },
+            ], { duration: 360, iterations: Infinity, easing: "ease-in-out" }],
+          ]);
+        } else if (m === "attack") {
+          this._play(rig, [
+            [body, [
+              { transform: "translateX(0) rotate(0)" },
+              { transform: "translateX(10px) rotate(-6deg) scale(1.04)" },
+              { transform: "translateX(0) rotate(0)" },
+            ], { duration: 420, easing: "ease-in-out" }],
+            [sprite, [
+              { filter: sprite?.style.filter || "none" },
+              { filter: `${sprite?.style.filter || "none"} brightness(1.15)` },
+              { filter: sprite?.style.filter || "none" },
+            ], { duration: 420, easing: "ease-in-out" }],
+          ]);
+        } else if (m === "hurt") {
+          this._play(rig, [
+            [body, [
+              { transform: "translateX(0)" },
+              { transform: "translateX(-8px) rotate(-4deg)" },
+              { transform: "translateX(5px)" },
+              { transform: "translateX(0)" },
+            ], { duration: 300, easing: "ease-in-out" }],
+          ]);
+        }
+        return;
+      }
       const legL = rig.querySelector(".av-leg.l");
       const legR = rig.querySelector(".av-leg.r");
       const armL = rig.querySelector(".av-arm.l");
