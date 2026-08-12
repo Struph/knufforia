@@ -10,15 +10,15 @@
     shop: "Mondbasar",
   };
 
-  const ENEMY_NAMES = [
-    "Flauschgeist",
-    "Moosslime",
-    "Sternmops",
-    "Wolkenkäfer",
-    "Bonbonbat",
-    "Teegeist",
-    "Puddingwolf",
-    "Kirscheule",
+  const ENEMIES = [
+    { name: "Knuffork", variant: "grunt" },
+    { name: "Zahnork", variant: "grunt" },
+    { name: "Moosork", variant: "brute" },
+    { name: "Keulenork", variant: "brute" },
+    { name: "Runenork", variant: "shaman" },
+    { name: "Nebelork", variant: "shaman" },
+    { name: "Kriegsork", variant: "boss" },
+    { name: "Häuptling Grobzahn", variant: "boss" },
   ];
 
   const el = {
@@ -96,9 +96,11 @@
   }
 
   function enemyStats(stage) {
+    const template = ENEMIES[(stage - 1) % ENEMIES.length];
     const maxHp = 24 + stage * 14;
     return {
-      name: ENEMY_NAMES[(stage - 1) % ENEMY_NAMES.length],
+      name: template.name,
+      variant: template.variant,
       maxHp,
       hp: maxHp,
       atk: 4 + Math.floor(stage * 1.6),
@@ -108,6 +110,7 @@
   function spawnEnemy() {
     state.enemy = enemyStats(state.stage);
     el.enemyName.textContent = state.enemy.name;
+    window.KnufforiaCharacters.mountOrc(el.enemySprite, state.enemy.variant);
     render();
   }
 
@@ -273,7 +276,7 @@
     state.arenaBusy = true;
     state.gold -= wager;
     el.arenaStatus.textContent = "Kampf läuft…";
-    el.arenaLog.textContent = "Lumi betritt die Sternenarena!";
+    el.arenaLog.textContent = "Lumi stellt sich dem Aren-Ork!";
     render();
 
     const enemyHp = 40 + state.stage * 22 + state.atk;
@@ -286,7 +289,7 @@
       rounds += 1;
       const dmg = state.atk + Math.floor(Math.random() * 4);
       hp -= dmg;
-      el.arenaLog.textContent = `Runde ${rounds}: Lumi trifft für ${dmg}. Geist noch ${Math.max(0, Math.ceil(hp))} HP.`;
+      el.arenaLog.textContent = `Runde ${rounds}: Lumi trifft für ${dmg}. Ork noch ${Math.max(0, Math.ceil(hp))} HP.`;
 
       if (hp <= 0) {
         clearInterval(timer);
@@ -296,7 +299,7 @@
         state.hp = Math.max(heroHp, Math.ceil(state.maxHp * 0.6));
         state.arenaBusy = false;
         el.arenaStatus.textContent = "Sieg!";
-        el.arenaLog.textContent = `Arena gewonnen! +${reward} Gold`;
+        el.arenaLog.textContent = `Aren-Ork besiegt! +${reward} Gold`;
         save();
         render();
         return;
@@ -310,7 +313,7 @@
         state.hp = Math.ceil(state.maxHp * 0.35);
         state.arenaBusy = false;
         el.arenaStatus.textContent = "Niederlage";
-        el.arenaLog.textContent = "Der Arena-Geist war zu stark. Einsatz verloren.";
+        el.arenaLog.textContent = "Der Aren-Ork war zu stark. Einsatz verloren.";
         save();
         render();
       }

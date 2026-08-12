@@ -537,6 +537,23 @@ body {
   color: var(--rose);
 }
 
+.orc-foe {
+  width: 110px;
+  height: 130px;
+  filter: drop-shadow(0 10px 14px rgba(58, 47, 69, 0.22));
+  animation: bob 2.2s ease-in-out infinite;
+}
+
+.orc-foe .orc-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.orc-foe.hurt {
+  animation: shake 0.28s ease;
+}
+
 .chibi.enemy {
   position: relative;
   width: 86px;
