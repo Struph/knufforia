@@ -69,6 +69,10 @@ window.KnufforiaViewer3D = (() => {
     const tick = () => {
       animId = requestAnimationFrame(tick);
       if (!renderer) return;
+      if (root) {
+        // gentle idle sway — feels less like a stiff mannequin
+        root.rotation.y = 0.35 + Math.sin(performance.now() * 0.0007) * 0.08;
+      }
       const cw = container.clientWidth;
       const ch = container.clientHeight;
       if (cw > 0 && ch > 0) {
