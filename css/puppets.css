@@ -1,4 +1,5 @@
-/* Articulated combat puppets */
+/* Anime-styled articulated hero/orc puppets */
+
 .puppet {
   --skin: #f0c2a8;
   --skin-shadow: #d99a7e;
@@ -7,138 +8,166 @@
   --cloth-dark: #2f8f76;
   --accent: #ffd27a;
   --boot: #3a2f45;
-  --eye: #2a1f18;
+  --skirt: #3fa892;
+  --glow: rgba(154, 240, 216, 0.55);
   position: relative;
-  width: 54px;
-  height: 78px;
+  width: 64px;
+  height: 96px;
   transform-origin: center bottom;
-  filter: drop-shadow(0 3px 4px rgba(20, 16, 28, 0.35));
+  filter: drop-shadow(0 4px 8px rgba(20, 16, 28, 0.4));
 }
 
 .puppet.facing-left {
   transform: scaleX(-1);
 }
-.puppet.facing-left .p-nameflip {
-  transform: scaleX(-1);
-}
 
 .puppet.boss {
-  width: 84px;
-  height: 118px;
+  width: 96px;
+  height: 132px;
 }
 
 .p-shadow {
   position: absolute;
   left: 50%;
-  bottom: 0;
-  width: 70%;
-  height: 8px;
+  bottom: 1px;
+  width: 72%;
+  height: 9px;
   transform: translateX(-50%);
-  background: rgba(20, 16, 28, 0.28);
+  background: rgba(20, 16, 28, 0.3);
   border-radius: 50%;
   filter: blur(2px);
 }
 
 .p-body {
   position: absolute;
-  inset: 0 0 4px;
+  inset: 0 0 5px;
   transform-origin: center bottom;
 }
 
 .p-hip {
   position: absolute;
   left: 50%;
-  bottom: 26px;
-  width: 18px;
-  height: 10px;
-  margin-left: -9px;
-  background: var(--cloth-dark);
-  border-radius: 6px;
+  bottom: 30px;
+  width: 20px;
+  height: 11px;
+  margin-left: -10px;
+  background: linear-gradient(180deg, var(--cloth), var(--cloth-dark));
+  border-radius: 7px;
   z-index: 2;
+}
+
+.p-skirt {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  width: 28px;
+  height: 16px;
+  margin-left: -14px;
+  background: linear-gradient(180deg, var(--skirt), var(--cloth-dark));
+  border-radius: 4px 4px 12px 12px;
+  z-index: 2;
+  transform-origin: top center;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.15);
 }
 
 .p-leg {
   position: absolute;
   bottom: 4px;
-  width: 10px;
-  height: 28px;
+  width: 11px;
+  height: 32px;
   transform-origin: top center;
   z-index: 1;
 }
 .p-leg-l {
-  left: 14px;
+  left: 16px;
 }
 .p-leg-r {
-  right: 14px;
+  right: 16px;
 }
 
 .p-thigh {
   position: absolute;
   top: 0;
   left: 1px;
-  width: 8px;
-  height: 14px;
-  background: var(--skin);
-  border-radius: 5px;
+  width: 9px;
+  height: 15px;
+  background: linear-gradient(180deg, var(--skin), var(--skin-shadow));
+  border-radius: 6px;
   transform-origin: top center;
 }
 .p-shin {
   position: absolute;
-  top: 12px;
+  top: 13px;
   left: 0;
-  width: 10px;
-  height: 16px;
-  background: linear-gradient(180deg, var(--skin) 35%, var(--boot) 36%);
-  border-radius: 4px 4px 3px 3px;
+  width: 11px;
+  height: 19px;
+  background: linear-gradient(180deg, var(--skin) 28%, var(--boot) 29%);
+  border-radius: 5px 5px 4px 4px;
   transform-origin: top center;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
 }
 
 .p-torso {
   position: absolute;
   left: 50%;
-  bottom: 32px;
-  width: 24px;
-  height: 28px;
-  margin-left: -12px;
+  bottom: 36px;
+  width: 26px;
+  height: 30px;
+  margin-left: -13px;
   transform-origin: center bottom;
   z-index: 3;
 }
 
 .p-chest {
   position: absolute;
-  inset: 6px 2px 0;
-  background: linear-gradient(180deg, var(--cloth), var(--cloth-dark));
-  border-radius: 10px 10px 8px 8px;
-  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.08);
+  inset: 8px 1px 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 42%),
+    linear-gradient(180deg, var(--cloth), var(--cloth-dark));
+  border-radius: 12px 12px 9px 9px;
+  box-shadow:
+    inset 0 -5px 0 rgba(0, 0, 0, 0.1),
+    0 0 12px var(--glow);
+}
+
+.p-chest::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 0;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 8px 8px 0 0;
 }
 
 .p-chest::after {
   content: "";
   position: absolute;
   left: 50%;
-  top: 8px;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
+  top: 9px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
   border-radius: 50%;
-  background: var(--accent);
-  opacity: 0.85;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--accent));
+  box-shadow: 0 0 6px var(--glow);
 }
 
 .p-arm {
   position: absolute;
-  top: 6px;
-  width: 8px;
-  height: 24px;
+  top: 7px;
+  width: 9px;
+  height: 28px;
   transform-origin: top center;
   z-index: 4;
 }
 .p-arm-l {
-  left: -4px;
+  left: -5px;
   z-index: 2;
 }
 .p-arm-r {
-  right: -4px;
+  right: -5px;
   z-index: 5;
 }
 
@@ -146,143 +175,187 @@
   position: absolute;
   top: 0;
   left: 1px;
-  width: 7px;
-  height: 12px;
-  background: var(--skin);
-  border-radius: 5px;
+  width: 8px;
+  height: 13px;
+  background: linear-gradient(180deg, var(--skin), var(--skin-shadow));
+  border-radius: 6px;
   transform-origin: top center;
 }
 .p-fore {
   position: absolute;
-  top: 10px;
+  top: 11px;
   left: 0;
-  width: 8px;
-  height: 13px;
-  background: var(--skin);
-  border-radius: 5px;
+  width: 9px;
+  height: 14px;
+  background: linear-gradient(180deg, var(--skin), var(--skin-shadow));
+  border-radius: 6px;
   transform-origin: top center;
 }
 
 .p-weapon {
   position: absolute;
   top: 8px;
-  left: 5px;
+  left: 6px;
   width: 4px;
-  height: 22px;
-  background: linear-gradient(180deg, var(--accent), #c49a4a);
+  height: 26px;
+  background: linear-gradient(180deg, #fff3c4, var(--accent), #c49a4a);
   border-radius: 2px;
-  transform: rotate(-18deg);
+  transform: rotate(-16deg);
   transform-origin: top center;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 8px var(--glow);
 }
 .p-weapon::before {
   content: "";
   position: absolute;
-  top: -4px;
-  left: -3px;
-  width: 10px;
-  height: 8px;
-  background: var(--cloth);
-  border-radius: 3px;
+  top: -5px;
+  left: -4px;
+  width: 12px;
+  height: 10px;
+  background: radial-gradient(circle at 40% 40%, #fff, var(--cloth));
+  border-radius: 4px;
+  box-shadow: 0 0 6px var(--glow);
+}
+.p-weapon::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
 }
 
 .puppet.is-orc .p-weapon {
-  width: 7px;
-  height: 18px;
+  width: 8px;
+  height: 20px;
   left: 4px;
-  background: linear-gradient(180deg, #8b5a2b, #5a3418);
-  border-radius: 3px 3px 2px 2px;
+  background: linear-gradient(180deg, #a8743a, #5a3418);
+  box-shadow: none;
 }
 .puppet.is-orc .p-weapon::before {
-  width: 14px;
-  height: 12px;
+  width: 15px;
+  height: 13px;
   left: -4px;
   top: 12px;
   background: #6b4424;
   border-radius: 50%;
+  box-shadow: none;
+}
+.puppet.is-orc .p-weapon::after {
+  display: none;
 }
 
 .p-head {
   position: absolute;
   left: 50%;
-  top: -16px;
-  width: 22px;
-  height: 22px;
-  margin-left: -11px;
+  top: -22px;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
   z-index: 6;
   transform-origin: center bottom;
 }
+
+.p-face-art {
+  position: absolute;
+  inset: -6px -8px -2px;
+  width: calc(100% + 16px);
+  height: calc(100% + 10px);
+  object-fit: contain;
+  object-position: center bottom;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(20, 16, 28, 0.25));
+  z-index: 3;
+}
+
+/* fallback geometric face if no art */
 .p-hair {
+  display: none;
+}
+.p-face {
+  display: none;
+}
+
+.puppet.no-face .p-hair {
+  display: block;
   position: absolute;
   inset: -4px -3px 4px;
   background: var(--hair);
   border-radius: 12px 12px 8px 8px;
   z-index: 1;
 }
-.p-hair::after {
-  content: "";
-  position: absolute;
-  left: -2px;
-  right: -2px;
-  bottom: -8px;
-  height: 14px;
-  background: var(--hair);
-  border-radius: 8px;
-  opacity: 0.95;
-}
-.p-face {
+.puppet.no-face .p-face {
+  display: block;
   position: absolute;
   inset: 3px 2px 1px;
   background: var(--skin);
   border-radius: 10px;
   z-index: 2;
-  overflow: hidden;
-}
-.p-eye {
-  position: absolute;
-  top: 8px;
-  width: 3px;
-  height: 4px;
-  background: var(--eye);
-  border-radius: 50%;
-}
-.p-eye.l {
-  left: 5px;
-}
-.p-eye.r {
-  right: 5px;
-}
-.p-face::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 4px;
-  width: 6px;
-  height: 2px;
-  margin-left: -3px;
-  border-radius: 2px;
-  background: rgba(180, 80, 90, 0.45);
 }
 
+.puppet.is-orc .p-head {
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  top: -18px;
+}
+.puppet.is-orc .p-hair {
+  display: block;
+  position: absolute;
+  inset: -2px -2px 6px;
+  background: var(--hair);
+  border-radius: 10px;
+  z-index: 1;
+}
+.puppet.is-orc .p-face {
+  display: block;
+  position: absolute;
+  inset: 2px 1px 0;
+  background: var(--skin);
+  border-radius: 9px;
+  z-index: 2;
+  overflow: hidden;
+}
 .puppet.is-orc .p-face::before {
   content: "";
   position: absolute;
   left: 3px;
-  bottom: 3px;
+  bottom: 2px;
   width: 3px;
   height: 6px;
   background: #fff6ea;
   border-radius: 1px;
-  box-shadow: 12px 0 0 #fff6ea;
-  z-index: 3;
+  box-shadow: 14px 0 0 #fff6ea;
+}
+.puppet.is-orc .p-eye {
+  position: absolute;
+  top: 9px;
+  width: 3px;
+  height: 4px;
+  background: #1a1510;
+  border-radius: 50%;
+}
+.puppet.is-orc .p-eye.l {
+  left: 6px;
+}
+.puppet.is-orc .p-eye.r {
+  right: 6px;
 }
 
-/* Idle breath */
+/* Animations */
 .puppet.idle .p-body {
-  animation: p-idle 2.2s ease-in-out infinite;
+  animation: p-idle 2.4s ease-in-out infinite;
 }
 .puppet.idle .p-arm-r {
-  animation: p-arm-idle 2.2s ease-in-out infinite;
+  animation: p-arm-idle 2.4s ease-in-out infinite;
+}
+.puppet.idle .p-skirt {
+  animation: p-skirt-idle 2.4s ease-in-out infinite;
+}
+.puppet.idle .p-head {
+  animation: p-head-idle 3s ease-in-out infinite;
 }
 
 @keyframes p-idle {
@@ -297,46 +370,66 @@
 @keyframes p-arm-idle {
   0%,
   100% {
-    transform: rotate(6deg);
+    transform: rotate(8deg);
   }
   50% {
-    transform: rotate(-4deg);
+    transform: rotate(-5deg);
+  }
+}
+@keyframes p-skirt-idle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+@keyframes p-head-idle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-2deg);
   }
 }
 
-/* Walk */
 .puppet.walk .p-leg-l {
-  animation: p-walk-l 0.34s linear infinite;
+  animation: p-walk-l 0.32s linear infinite;
 }
 .puppet.walk .p-leg-r {
-  animation: p-walk-r 0.34s linear infinite;
+  animation: p-walk-r 0.32s linear infinite;
 }
 .puppet.walk .p-arm-l {
-  animation: p-walk-r 0.34s linear infinite;
+  animation: p-walk-r 0.32s linear infinite;
 }
 .puppet.walk .p-arm-r {
-  animation: p-walk-l 0.34s linear infinite;
+  animation: p-walk-l 0.32s linear infinite;
 }
 .puppet.walk .p-body {
-  animation: p-walk-bob 0.34s linear infinite;
+  animation: p-walk-bob 0.32s linear infinite;
+}
+.puppet.walk .p-skirt {
+  animation: p-skirt-walk 0.32s linear infinite;
 }
 
 @keyframes p-walk-l {
   0%,
   100% {
-    transform: rotate(22deg);
+    transform: rotate(24deg);
   }
   50% {
-    transform: rotate(-22deg);
+    transform: rotate(-24deg);
   }
 }
 @keyframes p-walk-r {
   0%,
   100% {
-    transform: rotate(-22deg);
+    transform: rotate(-24deg);
   }
   50% {
-    transform: rotate(22deg);
+    transform: rotate(24deg);
   }
 }
 @keyframes p-walk-bob {
@@ -348,8 +441,16 @@
     transform: translateY(-3px);
   }
 }
+@keyframes p-skirt-walk {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
 
-/* Attack slash */
 .puppet.attack .p-arm-r {
   animation: p-slash 0.38s ease;
 }
@@ -359,16 +460,19 @@
 .puppet.attack .p-weapon {
   animation: p-weapon-flash 0.38s ease;
 }
+.puppet.attack .p-skirt {
+  animation: p-skirt-attack 0.38s ease;
+}
 
 @keyframes p-slash {
   0% {
-    transform: rotate(20deg);
+    transform: rotate(18deg);
   }
-  40% {
-    transform: rotate(-110deg);
+  35% {
+    transform: rotate(-125deg);
   }
   100% {
-    transform: rotate(10deg);
+    transform: rotate(8deg);
   }
 }
 @keyframes p-lunge-torso {
@@ -377,7 +481,7 @@
     transform: rotate(0deg);
   }
   40% {
-    transform: rotate(-8deg) translateX(3px);
+    transform: rotate(-10deg) translateX(4px);
   }
 }
 @keyframes p-weapon-flash {
@@ -385,8 +489,17 @@
   100% {
     filter: brightness(1);
   }
-  45% {
-    filter: brightness(1.45);
+  40% {
+    filter: brightness(1.6) saturate(1.2);
+  }
+}
+@keyframes p-skirt-attack {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  40% {
+    transform: rotate(8deg);
   }
 }
 
@@ -406,13 +519,10 @@
   }
 }
 
-.unit.combat-active {
-  z-index: 20 !important;
-  transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.28, 1);
-}
+.unit.combat-active,
 .unit.combat-returning {
   z-index: 20 !important;
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.28, 1);
 }
 
 .hit-spark {
