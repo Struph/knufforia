@@ -167,13 +167,26 @@ body {
   display: flex;
 }
 
-.battle-top {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: var(--top-h);
+.brand-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+.brand-mini strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+.brand-mini span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.place-hero #arena-preview .avatar-rig,
+.shop-banner #shop-preview .avatar-rig {
+  width: 72px;
+  height: 110px;
+  transform: none;
 }
 
 .pill-link,

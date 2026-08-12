@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/puppets.css" />
+  <link rel="stylesheet" href="css/creator.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
 </head>
 <body>
@@ -28,7 +29,40 @@
   </div>
 
   <div class="app">
-    <section class="screen active" id="screen-battle" aria-label="Kampfweg">
+    <!-- CHARACTER CREATOR -->
+    <section class="screen screen-create" id="screen-create" aria-label="Charakter erstellen">
+      <header class="battle-top">
+        <div class="brand-mini">
+          <strong>Knufforia</strong>
+          <span>Charakter erstellen</span>
+        </div>
+        <div class="room-badge">
+          <span class="room-label">Schritt</span>
+          <span class="room-value" id="create-step-num">1</span>
+        </div>
+        <button type="button" class="icon-btn tiny" id="btn-help" aria-label="Hilfe">?</button>
+      </header>
+
+      <div class="create-shell">
+        <aside class="create-preview">
+          <div class="create-preview-stage" id="create-preview"></div>
+          <p class="create-name-live" id="create-name-live">Dein Held</p>
+          <p class="create-class-live" id="create-class-live">Klasse wählen</p>
+        </aside>
+
+        <div class="create-panel">
+          <div class="create-steps" id="create-steps"></div>
+          <div class="create-body" id="create-body"></div>
+          <div class="create-footer">
+            <button type="button" class="btn soft" id="btn-create-back">Zurück</button>
+            <button type="button" class="btn primary" id="btn-create-next">Weiter</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BATTLE -->
+    <section class="screen" id="screen-battle" aria-label="Kampfweg">
       <header class="battle-top">
         <button type="button" class="pill-link" data-screen="shop">Basar</button>
         <div class="room-badge">
@@ -38,20 +72,20 @@
         </div>
         <div class="hud-mini">
           <span class="pill gold-pill"><span id="gold">0</span>★</span>
-          <span class="pill">Lv <span id="team-level">1</span></span>
-          <button type="button" class="icon-btn tiny" id="btn-help" aria-label="Hilfe">?</button>
+          <span class="pill">Lv <span id="hero-level">1</span></span>
+          <button type="button" class="icon-btn tiny" id="btn-help-battle" aria-label="Hilfe">?</button>
         </div>
         <button type="button" class="pill-link" data-screen="arena">Arena</button>
       </header>
 
       <div class="path-stage" id="path-stage">
         <div class="path-road" aria-hidden="true"></div>
-        <div class="lane heroes" id="hero-lane" aria-label="Helden"></div>
+        <div class="lane heroes solo-mode" id="hero-lane" aria-label="Held"></div>
         <div class="lane foes" id="enemy-lane" aria-label="Gegner"></div>
       </div>
 
       <footer class="battle-foot">
-        <p class="log" id="log">Das Team betritt den Weg…</p>
+        <p class="log" id="log">Dein Held betritt den Weg…</p>
         <div class="exp-wrap">
           <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
         </div>
@@ -66,7 +100,7 @@
       </header>
       <div class="side-layout">
         <div class="place-hero">
-          <img class="thumb" src="assets/heroes/lumi/thumb.webp?v=6" alt="" />
+          <div id="arena-preview"></div>
           <p>Riskanter Kampf gegen einen Aren-Ork. Mehr Gold bei Sieg.</p>
         </div>
         <div class="arena-panel">
@@ -89,10 +123,10 @@
       </header>
       <div class="side-layout">
         <div class="shop-banner">
-          <img class="thumb" src="assets/heroes/lumi/thumb.webp?v=6" alt="" />
+          <div id="shop-preview"></div>
           <div>
             <p class="shop-gold">Gold: <strong id="gold-shop">0</strong></p>
-            <p class="shop-note">Stärke dein ganzes Team.</p>
+            <p class="shop-note">Stärke deinen Held.</p>
           </div>
         </div>
         <div class="shop-shelf">
@@ -100,7 +134,7 @@
             <div class="item-art atk"></div>
             <div class="item-info">
               <h2>Sternenklinge</h2>
-              <p>ATK für alle Heldinnen.</p>
+              <p>Erhöht den Angriff deines Helden.</p>
               <button type="button" class="btn primary compact" id="btn-upgrade">
                 Kaufen
                 <span class="btn-sub" id="upgrade-cost">25 Gold</span>
@@ -111,7 +145,7 @@
             <div class="item-art heal"></div>
             <div class="item-info">
               <h2>Kirschtrank</h2>
-              <p>Heilt das gesamte Team.</p>
+              <p>Heilt deinen Held vollständig.</p>
               <button type="button" class="btn soft compact" id="btn-heal">
                 Kaufen
                 <span class="btn-sub" id="heal-cost">15 Gold</span>
@@ -130,7 +164,7 @@
   <div class="modal hidden" id="modal-afk" role="dialog" aria-labelledby="afk-title">
     <div class="modal-card">
       <h2 id="afk-title">Willkommen zurück!</h2>
-      <p id="afk-text">Dein Team hat AFK-Gold gesammelt.</p>
+      <p id="afk-text">Dein Held hat AFK-Gold gesammelt.</p>
       <p class="afk-gold" id="afk-gold">+0 Gold</p>
       <button type="button" class="btn primary" id="btn-claim-afk">Einsammeln</button>
     </div>
@@ -140,15 +174,16 @@
     <div class="modal-card">
       <h2 id="help-title">So spielt man</h2>
       <ol class="help-list">
-        <li>Halte das Handy <strong>quer</strong>.</li>
-        <li>Links 5 Heldinnen, rechts bis zu 5 Orks — alle immer sichtbar.</li>
-        <li>Angriffe laufen nacheinander.</li>
-        <li>Raum frei → Raum +1. Bei 10, 20, 30… kommt ein Boss.</li>
+        <li>Erstelle zuerst deinen eigenen Charakter.</li>
+        <li>Du hast genau <strong>einen</strong> Held, den du levelst.</li>
+        <li>Kämpfe Raum für Raum – bei 10/20/30… kommt ein Boss.</li>
+        <li>Später: Gruppen &amp; Gilden (kommt noch).</li>
       </ol>
       <button type="button" class="btn soft" id="btn-close-help">Verstanden</button>
     </div>
   </div>
 
+  <script src="js/creator.js"></script>
   <script src="js/puppets.js"></script>
   <script src="js/game.js"></script>
 </body>

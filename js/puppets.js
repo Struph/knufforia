@@ -8,22 +8,6 @@ window.KnufforiaPuppets = {
     orcBoss: { skin: "#4f9a58", hair: "#d4af37", cloth: "#6a3030", clothDark: "#3f1818", skirt: "#502020", accent: "#ffd27a", boot: "#1a1210" },
   },
 
-  humanHtml(kind, facing = "right") {
-    const base = `assets/heroes/${kind}`;
-    const v = "v=7";
-    return `
-      <div class="human-rig ${facing === "left" ? "facing-left" : "facing-right"} idle" data-hero="${kind}">
-        <div class="human-shadow"></div>
-        <div class="pivot-feet">
-          <div class="pivot-hip">
-            <div class="pivot-torso">
-              <img class="human-full" src="${base}/full.webp?${v}" alt="" draggable="false" />
-            </div>
-          </div>
-        </div>
-      </div>`;
-  },
-
   orcHtml(kind, facing = "right") {
     const p = this.orcPalettes[kind] || this.orcPalettes.orc;
     return `
@@ -49,8 +33,7 @@ window.KnufforiaPuppets = {
   },
 
   html(kind, facing = "right") {
-    if (String(kind).startsWith("orc")) return this.orcHtml(kind, facing);
-    return this.humanHtml(kind, facing);
+    return this.orcHtml(kind, facing);
   },
 
   _stop(rig) {
@@ -58,17 +41,10 @@ window.KnufforiaPuppets = {
     list.forEach((a) => {
       try {
         a.cancel();
-      } catch (_) {
-        /* ignore */
-      }
+      } catch (_) {}
     });
     this._anims.set(rig, []);
-    const img = rig.querySelector(".human-full");
-    if (img) {
-      img.getAnimations?.().forEach((a) => a.cancel());
-      img.style.transform = "";
-    }
-    rig.querySelectorAll(".pivot-feet, .pivot-hip, .pivot-torso, .p-body, .p-leg, .p-arm").forEach((el) => {
+    rig.querySelectorAll(".av-body, .av-leg, .av-arm, .pivot-feet, .pivot-hip, .pivot-torso, .human-full, .p-body, .p-leg, .p-arm").forEach((el) => {
       el.getAnimations?.().forEach((a) => a.cancel());
       el.style.transform = "";
     });
@@ -85,144 +61,77 @@ window.KnufforiaPuppets = {
 
   setAnim(node, mode) {
     if (!node) return;
-    const rig = node.classList?.contains("human-rig") || node.classList?.contains("puppet")
-      ? node
-      : node.querySelector?.(".human-rig, .puppet");
+    const rig =
+      node.classList?.contains("avatar-rig") ||
+      node.classList?.contains("human-rig") ||
+      node.classList?.contains("puppet")
+        ? node
+        : node.querySelector?.(".avatar-rig, .human-rig, .puppet");
     if (!rig) return;
 
     this._stop(rig);
     rig.classList.remove("idle", "walk", "attack", "hurt");
     void rig.offsetWidth;
-    rig.classList.add(mode || "idle");
-
-    const isHuman = rig.classList.contains("human-rig");
-    if (!isHuman) return; // orcs keep CSS keyframes
-
-    const feet = rig.querySelector(".pivot-feet");
-    const hip = rig.querySelector(".pivot-hip");
-    const torso = rig.querySelector(".pivot-torso");
-    const img = rig.querySelector(".human-full");
     const m = mode || "idle";
+    rig.classList.add(m);
 
+    if (rig.classList.contains("avatar-rig")) {
+      const body = rig.querySelector(".av-body");
+      const legL = rig.querySelector(".av-leg.l");
+      const legR = rig.querySelector(".av-leg.r");
+      const armL = rig.querySelector(".av-arm.l");
+      const armR = rig.querySelector(".av-arm.r");
+      if (m === "idle") {
+        this._play(rig, [
+          [body, [{ transform: "translateY(0)" }, { transform: "translateY(-4px)" }, { transform: "translateY(0)" }], { duration: 1600, iterations: Infinity, easing: "ease-in-out" }],
+          [armR, [{ transform: "rotate(8deg)" }, { transform: "rotate(-6deg)" }, { transform: "rotate(8deg)" }], { duration: 1600, iterations: Infinity, easing: "ease-in-out" }],
+        ]);
+      } else if (m === "walk") {
+        this._play(rig, [
+          [legL, [{ transform: "rotate(24deg)" }, { transform: "rotate(-24deg)" }, { transform: "rotate(24deg)" }], { duration: 380, iterations: Infinity, easing: "ease-in-out" }],
+          [legR, [{ transform: "rotate(-24deg)" }, { transform: "rotate(24deg)" }, { transform: "rotate(-24deg)" }], { duration: 380, iterations: Infinity, easing: "ease-in-out" }],
+          [armL, [{ transform: "rotate(-20deg)" }, { transform: "rotate(20deg)" }, { transform: "rotate(-20deg)" }], { duration: 380, iterations: Infinity, easing: "ease-in-out" }],
+          [armR, [{ transform: "rotate(20deg)" }, { transform: "rotate(-20deg)" }, { transform: "rotate(20deg)" }], { duration: 380, iterations: Infinity, easing: "ease-in-out" }],
+          [body, [{ transform: "translateY(0)" }, { transform: "translateY(-5px)" }, { transform: "translateY(0)" }], { duration: 380, iterations: Infinity, easing: "ease-in-out" }],
+        ]);
+      } else if (m === "attack") {
+        this._play(rig, [
+          [armR, [{ transform: "rotate(20deg)" }, { transform: "rotate(-130deg)" }, { transform: "rotate(10deg)" }], { duration: 420, easing: "ease-in-out" }],
+          [body, [{ transform: "rotate(0)" }, { transform: "rotate(-8deg) translateX(4px)" }, { transform: "rotate(0)" }], { duration: 420, easing: "ease-in-out" }],
+        ]);
+      } else if (m === "hurt") {
+        this._play(rig, [
+          [body, [{ transform: "translateX(0)" }, { transform: "translateX(-7px) rotate(-5deg)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 300, easing: "ease-in-out" }],
+        ]);
+      }
+      return;
+    }
+
+    // Orc puppets
+    const body = rig.querySelector(".p-body");
+    const legL = rig.querySelector(".p-leg-l");
+    const legR = rig.querySelector(".p-leg-r");
+    const armL = rig.querySelector(".p-arm-l");
+    const armR = rig.querySelector(".p-arm-r");
     if (m === "idle") {
       this._play(rig, [
-        [
-          hip,
-          [
-            { transform: "translateY(0px) rotate(0deg)" },
-            { transform: "translateY(-4px) rotate(0deg)" },
-            { transform: "translateY(0px) rotate(0deg)" },
-          ],
-          { duration: 1600, iterations: Infinity, easing: "ease-in-out" },
-        ],
-        [
-          torso,
-          [
-            { transform: "rotate(-2deg)" },
-            { transform: "rotate(2deg)" },
-            { transform: "rotate(-2deg)" },
-          ],
-          { duration: 2200, iterations: Infinity, easing: "ease-in-out" },
-        ],
+        [body, [{ transform: "translateY(0)" }, { transform: "translateY(-3px)" }, { transform: "translateY(0)" }], { duration: 1400, iterations: Infinity, easing: "ease-in-out" }],
       ]);
     } else if (m === "walk") {
       this._play(rig, [
-        [
-          feet,
-          [
-            { transform: "rotate(-12deg) translateY(0px)" },
-            { transform: "rotate(0deg) translateY(-10px)" },
-            { transform: "rotate(12deg) translateY(0px)" },
-            { transform: "rotate(0deg) translateY(-10px)" },
-            { transform: "rotate(-12deg) translateY(0px)" },
-          ],
-          { duration: 420, iterations: Infinity, easing: "ease-in-out" },
-        ],
-        [
-          hip,
-          [
-            { transform: "rotate(8deg)" },
-            { transform: "rotate(-8deg)" },
-            { transform: "rotate(8deg)" },
-          ],
-          { duration: 420, iterations: Infinity, easing: "ease-in-out" },
-        ],
-        [
-          torso,
-          [
-            { transform: "rotate(-6deg)" },
-            { transform: "rotate(6deg)" },
-            { transform: "rotate(-6deg)" },
-          ],
-          { duration: 420, iterations: Infinity, easing: "ease-in-out" },
-        ],
-        [
-          img,
-          [
-            { transform: "scale(1, 1)" },
-            { transform: "scale(1.04, 0.94)" },
-            { transform: "scale(1, 1)" },
-            { transform: "scale(1.04, 0.94)" },
-            { transform: "scale(1, 1)" },
-          ],
-          { duration: 420, iterations: Infinity, easing: "ease-in-out" },
-        ],
+        [legL, [{ transform: "rotate(20deg)" }, { transform: "rotate(-20deg)" }, { transform: "rotate(20deg)" }], { duration: 360, iterations: Infinity, easing: "ease-in-out" }],
+        [legR, [{ transform: "rotate(-20deg)" }, { transform: "rotate(20deg)" }, { transform: "rotate(-20deg)" }], { duration: 360, iterations: Infinity, easing: "ease-in-out" }],
+        [armL, [{ transform: "rotate(-16deg)" }, { transform: "rotate(16deg)" }, { transform: "rotate(-16deg)" }], { duration: 360, iterations: Infinity, easing: "ease-in-out" }],
+        [armR, [{ transform: "rotate(16deg)" }, { transform: "rotate(-16deg)" }, { transform: "rotate(16deg)" }], { duration: 360, iterations: Infinity, easing: "ease-in-out" }],
       ]);
     } else if (m === "attack") {
       this._play(rig, [
-        [
-          feet,
-          [
-            { transform: "rotate(0deg)" },
-            { transform: "rotate(10deg)" },
-            { transform: "rotate(-4deg)" },
-            { transform: "rotate(0deg)" },
-          ],
-          { duration: 420, easing: "ease-in-out" },
-        ],
-        [
-          hip,
-          [
-            { transform: "rotate(0deg) translateX(0px)" },
-            { transform: "rotate(14deg) translateX(-4px)" },
-            { transform: "rotate(-16deg) translateX(8px)" },
-            { transform: "rotate(0deg) translateX(0px)" },
-          ],
-          { duration: 420, easing: "ease-in-out" },
-        ],
-        [
-          torso,
-          [
-            { transform: "rotate(0deg)" },
-            { transform: "rotate(18deg)" },
-            { transform: "rotate(-20deg)" },
-            { transform: "rotate(0deg)" },
-          ],
-          { duration: 420, easing: "ease-in-out" },
-        ],
-        [
-          img,
-          [
-            { transform: "scale(1) rotate(0deg)" },
-            { transform: "scale(1.06) rotate(6deg)" },
-            { transform: "scale(1.08) rotate(-8deg)" },
-            { transform: "scale(1) rotate(0deg)" },
-          ],
-          { duration: 420, easing: "ease-in-out" },
-        ],
+        [armR, [{ transform: "rotate(10deg)" }, { transform: "rotate(-120deg)" }, { transform: "rotate(10deg)" }], { duration: 400, easing: "ease-in-out" }],
+        [body, [{ transform: "rotate(0)" }, { transform: "rotate(-6deg)" }, { transform: "rotate(0)" }], { duration: 400, easing: "ease-in-out" }],
       ]);
     } else if (m === "hurt") {
       this._play(rig, [
-        [
-          hip,
-          [
-            { transform: "translateX(0px) rotate(0deg)" },
-            { transform: "translateX(-8px) rotate(-8deg)" },
-            { transform: "translateX(8px) rotate(6deg)" },
-            { transform: "translateX(0px) rotate(0deg)" },
-          ],
-          { duration: 320, easing: "ease-in-out" },
-        ],
+        [body, [{ transform: "translateX(0)" }, { transform: "translateX(6px) rotate(4deg)" }, { transform: "translateX(0)" }], { duration: 280, easing: "ease-in-out" }],
       ]);
     }
   },
