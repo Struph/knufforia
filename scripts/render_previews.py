@@ -55,6 +55,16 @@ def render_glb(glb, png):
     bg.inputs[1].default_value = 0.35
     scene.render.filepath = png
     scene.render.image_settings.file_format = "PNG"
+    # Show bind / rest pose — clear pose channels so Idle doesn't affect preview
+    for o in bpy.context.scene.objects:
+        if o.type == "ARMATURE":
+            if o.animation_data:
+                o.animation_data.action = None
+            bpy.context.view_layer.objects.active = o
+            bpy.ops.object.mode_set(mode="POSE")
+            bpy.ops.pose.select_all(action="SELECT")
+            bpy.ops.pose.transforms_clear()
+            bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.scene.frame_set(1)
     bpy.ops.render.render(write_still=True)
     print("rendered", png)

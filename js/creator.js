@@ -1,8 +1,8 @@
 window.KnufforiaCreator = {
   STEPS: [
     { id: "name", title: "Name", lead: "Wie heißt dein Held?" },
-    { id: "body", title: "Körper", lead: "3D-Basiskörper mit Skeleton-Rig (natürliche Pose)." },
-    { id: "done", title: "Fertig", lead: "Rig steht – als Nächstes Haare, Gesicht & Outfits." },
+    { id: "body", title: "Körper", lead: "3D-Basiskörper mit Skeleton, Skin, Haaren & Gesicht." },
+    { id: "done", title: "Fertig", lead: "Basiskörper fertig – Outfits folgen als Nächstes." },
   ],
 
   BODIES: [

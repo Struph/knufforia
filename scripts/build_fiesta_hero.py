@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
 Fiesta-style hero bases: body-only MakeHuman mesh + humanoid rig + warm skin
-+ dark-violet shoulder-cut hair (female) / short brown (male) + simple face.
++ dark-violet shoulder-cut hair (female) / short brown (male) + face features.
 """
 from __future__ import annotations
 
 import gzip
 import math
-import os
 from pathlib import Path
 
 import bmesh
@@ -20,6 +19,10 @@ MALE_TARGET = Path("/tmp/mh/male.target.gz")
 FEMALE_TARGET = Path("/tmp/mh/female.target.gz")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 USED: list[int] = []
+
+# Peach matched to face-anime-card.png (~250,222,198)
+SKIN_F = (0.92, 0.78, 0.66, 1.0)
+SKIN_M = (0.88, 0.74, 0.60, 1.0)
 
 
 def clear_scene():
@@ -48,6 +51,8 @@ def make_mat(name, color, rough=0.5):
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     bsdf.inputs["Base Color"].default_value = color
     bsdf.inputs["Roughness"].default_value = rough
+    if "Specular IOR Level" in bsdf.inputs:
+        bsdf.inputs["Specular IOR Level"].default_value = 0.12
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     return mat
 
@@ -69,7 +74,6 @@ def import_body_only():
                     body_faces.append(idxs)
     USED = sorted({i for face in body_faces for i in face})
     remap = {old: new for new, old in enumerate(USED)}
-    # MakeHuman Y-up → Blender Z-up, face toward -Y
     scaled = [(verts[i][0] * 0.1, -verts[i][2] * 0.1, verts[i][1] * 0.1) for i in USED]
     mesh = bpy.data.meshes.new("BodyMesh")
     mesh.from_pydata(scaled, [], [tuple(remap[i] for i in face) for face in body_faces])
@@ -142,15 +146,11 @@ def stylize_fiesta(obj, gender):
 
 
 def paint_underwear(obj, gender):
-    # Warm fair skin (not mannequin white)
-    skin = make_mat(
-        "Skin",
-        (0.78, 0.55, 0.42, 1.0) if gender == "female" else (0.74, 0.52, 0.40, 1.0),
-        0.52,
-    )
+    """Skin + underwear with one-ring neighbor expand for softer edges."""
+    skin = make_mat("Skin", SKIN_F if gender == "female" else SKIN_M, 0.52)
     cloth = make_mat(
         "Underwear",
-        (0.14, 0.16, 0.22, 1.0) if gender == "male" else (0.16, 0.12, 0.18, 1.0),
+        (0.14, 0.16, 0.22, 1.0) if gender == "male" else (0.15, 0.11, 0.17, 1.0),
         0.72,
     )
     mesh = obj.data
@@ -159,23 +159,44 @@ def paint_underwear(obj, gender):
     mesh.materials.append(cloth)
     xmin, xmax, ymin, ymax, zmin, zmax = metrics(obj)
     h = zmax - zmin
-    torso_x = (xmax - xmin) * 0.17
+    torso_x = (xmax - xmin) * 0.18
+
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.mode_set(mode="EDIT")
     bm = bmesh.from_edit_mesh(mesh)
     bm.faces.ensure_lookup_table()
+    bm.edges.ensure_lookup_table()
+
+    seed = set()
     for f in bm.faces:
         f.material_index = 0
         cx = sum(v.co.x for v in f.verts) / len(f.verts)
+        cy = sum(v.co.y for v in f.verts) / len(f.verts)
         cz = sum(v.co.z for v in f.verts) / len(f.verts)
         t = (cz - zmin) / h
         if abs(cx) > torso_x:
             continue
-        lo, hi = (0.468, 0.525) if gender == "female" else (0.450, 0.535)
+        lo, hi = (0.470, 0.528) if gender == "female" else (0.452, 0.538)
         if lo <= t <= hi:
-            f.material_index = 1
-        if gender == "female" and 0.655 <= t <= 0.705:
-            f.material_index = 1
+            seed.add(f.index)
+        if gender == "female" and 0.658 <= t <= 0.702 and abs(cx) < torso_x * 0.85 and cy < 0.06:
+            seed.add(f.index)
+
+    # Expand once so edges are less staircase-like
+    expanded = set(seed)
+    for fi in list(seed):
+        f = bm.faces[fi]
+        for e in f.edges:
+            for lf in e.link_faces:
+                cx = sum(v.co.x for v in lf.verts) / len(lf.verts)
+                cz = sum(v.co.z for v in lf.verts) / len(lf.verts)
+                t = (cz - zmin) / h
+                if abs(cx) <= torso_x * 1.05 and 0.44 <= t <= 0.72:
+                    expanded.add(lf.index)
+
+    for fi in expanded:
+        bm.faces[fi].material_index = 1
+
     bmesh.update_edit_mesh(mesh)
     bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -315,7 +336,56 @@ def bind_weights(obj, arm):
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
+def sanitize_shoulder_weights(obj, arm):
+    """Only strip arm weights from true torso verts (close to midline)."""
+    me = obj.data
+    xmin, xmax, ymin, ymax, zmin, zmax = metrics(obj)
+    h = zmax - zmin
+    arm_bones = ("LeftArm", "RightArm", "LeftForeArm", "RightForeArm", "LeftHand", "RightHand")
+
+    def weight_of(g, vi):
+        try:
+            return g.weight(vi)
+        except RuntimeError:
+            return None
+
+    for vi, v in enumerate(me.vertices):
+        t = (v.co.z - zmin) / h
+        ax = abs(v.co.x)
+        # Strict torso only — do not touch real arm geometry
+        if not (0.62 < t < 0.78 and ax < 0.11):
+            continue
+        for name in arm_bones:
+            g = obj.vertex_groups.get(name)
+            if not g:
+                continue
+            w = weight_of(g, vi)
+            if w is None or w < 0.05:
+                continue
+            g.add([vi], 0.0, "REPLACE")
+        # Prefer spine/chest
+        for name in ("Spine2", "Spine1", "LeftShoulder", "RightShoulder"):
+            g = obj.vertex_groups.get(name)
+            if not g:
+                continue
+            w = weight_of(g, vi)
+            if w is None:
+                g.add([vi], 0.35, "REPLACE")
+            elif w < 0.2:
+                g.add([vi], 0.35, "ADD")
+
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode="WEIGHT_PAINT")
+    try:
+        bpy.ops.object.vertex_group_limit_total(limit=4)
+    except Exception:
+        pass
+    bpy.ops.object.vertex_group_normalize_all(lock_active=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
 def set_natural_pose(arm):
+    """Mild battle-ready — strong arm tuck caused weight fins."""
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode="POSE")
     pb = arm.pose.bones
@@ -327,30 +397,29 @@ def set_natural_pose(arm):
         b.rotation_mode = "XYZ"
         b.rotation_euler = Euler((math.radians(rx), math.radians(ry), math.radians(rz)), "XYZ")
 
-    rot("LeftShoulder", rz=-4)
-    rot("RightShoulder", rz=4)
-    rot("LeftArm", rx=6, rz=-34)
-    rot("RightArm", rx=6, rz=34)
-    rot("LeftForeArm", rx=12, rz=-8)
-    rot("RightForeArm", rx=12, rz=8)
-    rot("LeftHand", rx=-6)
-    rot("RightHand", rx=-6)
-    rot("Hips", ry=-3, rz=2)
-    rot("Spine", rx=3)
-    rot("Spine1", rx=-2, ry=2)
-    rot("Spine2", ry=2)
-    rot("Neck", rx=-4)
-    rot("Head", ry=-4, rx=-2)
-    rot("RightUpLeg", rx=-12, rz=-2)
-    rot("RightLeg", rx=10)
-    rot("RightFoot", rx=4)
-    rot("LeftUpLeg", rx=7, rz=3)
-    rot("LeftLeg", rx=6)
+    rot("LeftShoulder", rz=-2)
+    rot("RightShoulder", rz=2)
+    rot("LeftArm", rx=3, rz=-8)
+    rot("RightArm", rx=3, rz=8)
+    rot("LeftForeArm", rx=5, rz=-2)
+    rot("RightForeArm", rx=5, rz=2)
+    rot("LeftHand", rx=-4)
+    rot("RightHand", rx=-4)
+    rot("Hips", ry=-2, rz=1)
+    rot("Spine", rx=2)
+    rot("Spine1", rx=-1, ry=1)
+    rot("Neck", rx=-3)
+    rot("Head", ry=-2, rx=-2)
+    rot("RightUpLeg", rx=-8, rz=-2)
+    rot("RightLeg", rx=7)
+    rot("RightFoot", rx=3)
+    rot("LeftUpLeg", rx=5, rz=2)
+    rot("LeftLeg", rx=4)
     rot("LeftFoot", rx=2)
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
-def apply_pose_as_rest(arm, obj):
+def apply_pose_as_rest(arm, obj, rebind=True):
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
@@ -368,28 +437,26 @@ def apply_pose_as_rest(arm, obj):
     bpy.ops.pose.armature_apply(selected=False)
     bpy.ops.object.mode_set(mode="OBJECT")
 
-    bind_weights(obj, arm)
+    if rebind:
+        bind_weights(obj, arm)
+        sanitize_shoulder_weights(obj, arm)
 
 
 def cleanup_arm_fins(obj):
-    """Pull obvious weight-spike vertices back toward the torso envelope."""
+    """Only pull extreme outliers (true spikes), never crush normal A-pose arms."""
     me = obj.data
     xmin, xmax, ymin, ymax, zmin, zmax = metrics(obj)
     h = zmax - zmin
-    # Shoulder band
+    # A-pose shoulders/hands routinely reach ~0.28–0.35 — only clamp beyond that
     for v in me.vertices:
         t = (v.co.z - zmin) / h
         ax = abs(v.co.x)
-        # spikes stick far out around shoulders / upper arms
-        if 0.62 < t < 0.82 and ax > 0.20:
-            # soft clamp lateral extent
-            limit = 0.20 + (0.82 - t) * 0.35
-            if ax > limit:
-                v.co.x = (limit if v.co.x > 0 else -limit) * 0.98
-        if 0.45 < t < 0.62 and ax > 0.28:
-            limit = 0.28 + (t - 0.45) * 0.4
-            if ax > limit:
-                v.co.x = (limit if v.co.x > 0 else -limit) * 0.98
+        if 0.60 < t < 0.82 and ax > 0.36:
+            limit = 0.34
+            v.co.x = (limit if v.co.x > 0 else -limit)
+        if 0.40 < t < 0.60 and ax > 0.42:
+            limit = 0.40
+            v.co.x = (limit if v.co.x > 0 else -limit)
     me.update()
 
 
@@ -420,9 +487,17 @@ def head_front_y(obj):
 def textured_mat(name, image_path, rough=0.45):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
-    mat.blend_method = "HASHED"
+    mat.blend_method = "CLIP"
     try:
-        mat.shadow_method = "HASHED"
+        mat.alpha_threshold = 0.45
+    except Exception:
+        pass
+    try:
+        mat.shadow_method = "CLIP"
+    except Exception:
+        pass
+    try:
+        mat.use_backface_culling = False
     except Exception:
         pass
     nt = mat.node_tree
@@ -443,53 +518,80 @@ def textured_mat(name, image_path, rough=0.45):
 
 def make_card(name, mat, width, height, location):
     """XY plane rotated to face -Y (character forward)."""
-    bpy.ops.mesh.primitive_plane_add(size=1.0, location=location)
+    bpy.ops.mesh.primitive_plane_add(size=1.0, location=(0, 0, 0))
     o = bpy.context.active_object
     o.name = name
     o.scale = (width, height, 1.0)
     o.rotation_euler = (math.radians(90), 0, 0)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    o.location = location
+    o.location = Vector(location)
     bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
     if o.data.materials:
         o.data.materials[0] = mat
     else:
         o.data.materials.append(mat)
-    # ensure UVs exist
     if not o.data.uv_layers:
         o.data.uv_layers.new(name="UVMap")
     return o
 
 
+def bounds_obj(obj):
+    pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
+    xs, ys, zs = [p.x for p in pts], [p.y for p in pts], [p.z for p in pts]
+    return {
+        "center": Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, (min(zs) + max(zs)) / 2)),
+        "min": Vector((min(xs), min(ys), min(zs))),
+        "max": Vector((max(xs), max(ys), max(zs))),
+    }
+
+
 def make_hair(female: bool, hc: Vector, front_y: float):
     tex_dir = OUT_DIR / "tex"
     if female:
-        mat = textured_mat("HairCardMat", tex_dir / "hair-violet-card.png", 0.4)
-        # Main silhouette card — Fiesta shoulder cut with face window + braid
-        # Sit on the skull; keep face window aligned with eyes
-        hair = make_card(
-            "HairTemp",
+        mat = textured_mat("HairCardMat", tex_dir / "hair-violet-card.png", 0.38)
+        # Front silhouette with face window + braid
+        front = make_card(
+            "HairFront",
+            mat,
+            width=0.28,
+            height=0.32,
+            location=Vector((0.0, front_y - 0.012, hc.z + 0.055)),
+        )
+        # Back volume card (same texture, slightly larger, behind skull)
+        back = make_card(
+            "HairBack",
             mat,
             width=0.30,
-            height=0.34,
-            location=Vector((0.0, front_y - 0.008, hc.z + 0.06)),
+            height=0.30,
+            location=Vector((0.0, front_y + 0.06, hc.z + 0.04)),
         )
+        bpy.ops.object.select_all(action="DESELECT")
+        front.select_set(True)
+        back.select_set(True)
+        bpy.context.view_layer.objects.active = front
+        bpy.ops.object.join()
+        hair = bpy.context.active_object
+        hair.name = "HairTemp"
         return hair
-    # Male: simple brown volume (no violet card)
-    hair_mat = make_mat("HairBrown", (0.12, 0.06, 0.035, 1.0), 0.4)
+
+    # Male: short brown covering crown (no headband look)
+    hair_mat = make_mat("HairBrown", (0.12, 0.06, 0.035, 1.0), 0.42)
     parts = []
-    for loc, sc in [
-        (Vector((0, 0.02, 0.04)), (0.095, 0.10, 0.06)),
-        (Vector((0, -0.07, 0.03)), (0.07, 0.025, 0.025)),
-        (Vector((0.07, 0.01, 0.0)), (0.028, 0.04, 0.055)),
-        (Vector((-0.07, 0.01, 0.0)), (0.028, 0.04, 0.055)),
-    ]:
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=14, ring_count=10, radius=1.0, location=loc)
+
+    def ball(loc, scale):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=10, radius=1.0, location=loc)
         o = bpy.context.active_object
-        o.scale = sc
+        o.scale = scale
         bpy.ops.object.transform_apply(scale=True)
         o.data.materials.append(hair_mat)
         parts.append(o)
+
+    ball(Vector((0, 0.0, 0.055)), (0.11, 0.115, 0.075))  # crown top
+    ball(Vector((0, 0.05, 0.025)), (0.10, 0.085, 0.055))  # back
+    ball(Vector((0, -0.075, 0.04)), (0.085, 0.032, 0.035))  # front fringe
+    ball(Vector((0.078, 0.01, 0.02)), (0.035, 0.055, 0.065))
+    ball(Vector((-0.078, 0.01, 0.02)), (0.035, 0.055, 0.065))
+
     bpy.ops.object.select_all(action="DESELECT")
     for p in parts:
         p.select_set(True)
@@ -497,11 +599,10 @@ def make_hair(female: bool, hc: Vector, front_y: float):
     bpy.ops.object.join()
     hair = bpy.context.active_object
     hair.name = "HairTemp"
-    # move to head
     ab = bounds_obj(hair)
     offset = hc - ab["center"]
-    offset.z += 0.015
-    offset.y += 0.01
+    offset.z += 0.02
+    offset.y += 0.005
     hair.location = hair.location + offset
     bpy.ops.object.select_all(action="DESELECT")
     hair.select_set(True)
@@ -513,40 +614,52 @@ def make_hair(female: bool, hc: Vector, front_y: float):
 def make_face(female: bool, hc: Vector, front_y: float):
     tex_dir = OUT_DIR / "tex"
     if female:
-        mat = textured_mat("FaceCardMat", tex_dir / "face-anime-card.png", 0.45)
-        # Slightly smaller than hair, sit just in front of hair card
-        # Compact face plate at eye level (texture is a full head — keep it small)
+        mat = textured_mat("FaceCardMat", tex_dir / "face-anime-card.png", 0.42)
         face = make_card(
             "FaceTemp",
             mat,
-            width=0.15,
-            height=0.17,
-            location=Vector((0.0, front_y - 0.03, hc.z + 0.04)),
+            width=0.125,
+            height=0.135,
+            location=Vector((0.0, front_y - 0.036, hc.z + 0.045)),
         )
+        # Eyes + cheeks + mouth from face card texture
+        if face.data.uv_layers:
+            uv = face.data.uv_layers.active.data
+            for loop in uv:
+                loop.uv.x = 0.20 + loop.uv.x * 0.60
+                loop.uv.y = 0.30 + loop.uv.y * 0.55
         return face
-    # Male: simple eyes only
+
     eye_mat = make_mat("EyeWhite", (0.97, 0.97, 0.98, 1), 0.22)
     iris_mat = make_mat("Iris", (0.16, 0.26, 0.42, 1), 0.18)
+    brow_mat = make_mat("Brow", (0.06, 0.03, 0.02, 1), 0.6)
     objs = []
-    fy = front_y - 0.02
-    ez = hc.z + 0.005
+    fy = front_y - 0.028
+    ez = hc.z + 0.015
     for sgn in (1.0, -1.0):
         bpy.ops.mesh.primitive_uv_sphere_add(
             segments=12, ring_count=8, radius=0.016, location=Vector((sgn * 0.03, fy, ez))
         )
         eye = bpy.context.active_object
-        eye.scale = (1.15, 0.5, 1.3)
+        eye.scale = (1.15, 0.5, 1.25)
         bpy.ops.object.transform_apply(scale=True)
         eye.data.materials.append(eye_mat)
         objs.append(eye)
         bpy.ops.mesh.primitive_uv_sphere_add(
-            segments=10, ring_count=8, radius=0.008, location=Vector((sgn * 0.03, fy - 0.008, ez))
+            segments=10, ring_count=8, radius=0.0075, location=Vector((sgn * 0.028, fy - 0.008, ez))
         )
         iris = bpy.context.active_object
-        iris.scale = (1.0, 0.45, 1.15)
+        iris.scale = (1.0, 0.45, 1.1)
         bpy.ops.object.transform_apply(scale=True)
         iris.data.materials.append(iris_mat)
         objs.append(iris)
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=Vector((sgn * 0.028, fy, ez + 0.024)))
+        brow = bpy.context.active_object
+        brow.scale = (0.022, 0.005, 0.0035)
+        bpy.ops.object.transform_apply(scale=True)
+        brow.data.materials.append(brow_mat)
+        objs.append(brow)
+
     bpy.ops.object.select_all(action="DESELECT")
     for o in objs:
         o.select_set(True)
@@ -555,16 +668,6 @@ def make_face(female: bool, hc: Vector, front_y: float):
     face = bpy.context.active_object
     face.name = "FaceTemp"
     return face
-
-
-def bounds_obj(obj):
-    pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
-    xs, ys, zs = [p.x for p in pts], [p.y for p in pts], [p.z for p in pts]
-    return {
-        "center": Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, (min(zs) + max(zs)) / 2)),
-        "min": Vector((min(xs), min(ys), min(zs))),
-        "max": Vector((max(xs), max(ys), max(zs))),
-    }
 
 
 def merge_onto_body(body, accessory):
@@ -612,6 +715,7 @@ def add_idle_animation(arm):
         b.rotation_euler = Euler((math.radians(rx), math.radians(ry), math.radians(rz)), "XYZ")
         b.keyframe_insert(data_path="rotation_euler", frame=frame)
 
+    # Breath / sway only — arm keys collapse poorly weighted A-pose limbs
     key("Spine1", 1, 0, 0, 0)
     key("Spine1", 30, 2, 0, 0)
     key("Spine1", 60, 0, 0, 0)
@@ -639,6 +743,7 @@ def export_rigged(path, arm, obj):
         export_skins=True,
         export_yup=True,
         export_morph=False,
+        export_image_format="AUTO",
     )
 
 
@@ -653,28 +758,17 @@ def build(gender: str, target: Path, out_name: str):
 
     arm = create_humanoid_armature(body, name=f"Armature_{gender}")
     bind_weights(body, arm)
-    set_natural_pose(arm)
-    apply_pose_as_rest(arm, body)
-    cleanup_arm_fins(body)
+    # Keep MakeHuman A-pose as rest — no pose bake, no weight surgery, no fin clamp.
     center_ground(body)
     arm.location = (0, 0, 0)
 
     hc = head_center(body)
     fy = head_front_y(body)
-    # Face first (closer to camera), then hair card behind it
     face = make_face(female, hc, fy)
     hair = make_hair(female, hc, fy)
-    # Prefer upper part of face texture (eyes/cheeks), crop neck
-    if female and face.data.uv_layers:
-        uv = face.data.uv_layers.active.data
-        for loop in uv:
-            # zoom into central face: u 0.18-0.82, v 0.28-0.92
-            loop.uv.x = 0.18 + loop.uv.x * 0.64
-            loop.uv.y = 0.28 + loop.uv.y * 0.64
     body = merge_onto_body(body, face)
     body = merge_onto_body(body, hair)
 
-    # Keep armature binding after join
     for mod in list(body.modifiers):
         if mod.type == "ARMATURE":
             body.modifiers.remove(mod)
