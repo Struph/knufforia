@@ -4,6 +4,12 @@
   const AFK_CAP_HOURS = 8;
   const AFK_GOLD_PER_MIN = 2;
 
+  const PLACE_NAMES = {
+    battle: "Kampfhain",
+    arena: "Sternenarena",
+    shop: "Mondbasar",
+  };
+
   const ENEMY_NAMES = [
     "Flauschgeist",
     "Moosslime",
@@ -16,7 +22,16 @@
   ];
 
   const el = {
+    screens: {
+      world: document.getElementById("screen-world"),
+      battle: document.getElementById("screen-battle"),
+      arena: document.getElementById("screen-arena"),
+      shop: document.getElementById("screen-shop"),
+    },
     gold: document.getElementById("gold"),
+    goldWorld: document.getElementById("gold-world"),
+    goldShop: document.getElementById("gold-shop"),
+    levelWorld: document.getElementById("level-world"),
     heroLevel: document.getElementById("hero-level"),
     stage: document.getElementById("stage"),
     heroHp: document.getElementById("hero-hp"),
@@ -37,13 +52,20 @@
     btnHelp: document.getElementById("btn-help"),
     btnCloseHelp: document.getElementById("btn-close-help"),
     btnClaimAfk: document.getElementById("btn-claim-afk"),
+    btnArenaFight: document.getElementById("btn-arena-fight"),
+    arenaStatus: document.getElementById("arena-status"),
+    arenaLog: document.getElementById("arena-log"),
+    arenaWager: document.getElementById("arena-wager"),
     modalAfk: document.getElementById("modal-afk"),
     modalHelp: document.getElementById("modal-help"),
     afkText: document.getElementById("afk-text"),
     afkGold: document.getElementById("afk-gold"),
+    travelOverlay: document.getElementById("travel-overlay"),
+    travelText: document.getElementById("travel-text"),
   };
 
   const state = {
+    screen: "world",
     gold: 0,
     heroLevel: 1,
     exp: 0,
@@ -54,6 +76,7 @@
     enemy: null,
     lastSeen: Date.now(),
     pendingAfkGold: 0,
+    arenaBusy: false,
   };
 
   function expToLevel(level) {
@@ -66,6 +89,10 @@
 
   function healCost() {
     return 12 + Math.floor(state.heroLevel * 1.5);
+  }
+
+  function arenaWager() {
+    return 20 + state.stage * 8;
   }
 
   function enemyStats(stage) {
@@ -103,8 +130,31 @@
     return { x: r.left + r.width / 2 - 12, y: r.top + 8 };
   }
 
+  function showScreen(name) {
+    state.screen = name;
+    Object.entries(el.screens).forEach(([key, node]) => {
+      node.classList.toggle("active", key === name);
+    });
+    if (name === "battle" && !state.enemy) spawnEnemy();
+    render();
+  }
+
+  function travelTo(name) {
+    const label = PLACE_NAMES[name] || name;
+    el.travelText.textContent = `Unterwegs nach ${label}…`;
+    el.travelOverlay.classList.remove("hidden");
+    setTimeout(() => {
+      el.travelOverlay.classList.add("hidden");
+      showScreen(name);
+    }, 700);
+  }
+
   function render() {
-    el.gold.textContent = Math.floor(state.gold).toLocaleString("de-DE");
+    const goldText = Math.floor(state.gold).toLocaleString("de-DE");
+    el.gold.textContent = goldText;
+    el.goldWorld.textContent = goldText;
+    el.goldShop.textContent = goldText;
+    el.levelWorld.textContent = String(state.heroLevel);
     el.heroLevel.textContent = String(state.heroLevel);
     el.stage.textContent = String(state.stage);
     el.heroPower.textContent = `ATK ${state.atk}`;
@@ -114,10 +164,14 @@
     el.expFill.style.width = `${Math.min(100, (state.exp / need) * 100)}%`;
     el.expText.textContent = `EXP ${state.exp} / ${need}`;
 
-    el.upgradeCost.textContent = `Kosten: ${upgradeCost()} Gold`;
-    el.healCost.textContent = `Kosten: ${healCost()} Gold`;
+    el.upgradeCost.textContent = `${upgradeCost()} Gold`;
+    el.healCost.textContent = `${healCost()} Gold`;
     el.btnUpgrade.disabled = state.gold < upgradeCost();
     el.btnHeal.disabled = state.gold < healCost() || state.hp >= state.maxHp;
+
+    const wager = arenaWager();
+    el.arenaWager.textContent = String(wager);
+    el.btnArenaFight.disabled = state.arenaBusy || state.gold < wager;
 
     if (state.enemy) {
       el.enemyPower.textContent = `HP ${Math.max(0, Math.ceil(state.enemy.hp))}`;
@@ -152,9 +206,8 @@
   }
 
   function battleTick() {
-    if (!state.enemy) return;
+    if (state.screen !== "battle" || !state.enemy || state.arenaBusy) return;
 
-    // Hero attack
     el.heroSprite.classList.remove("attack");
     void el.heroSprite.offsetWidth;
     el.heroSprite.classList.add("attack");
@@ -176,7 +229,6 @@
       return;
     }
 
-    // Enemy counter
     const enemyDmg = Math.max(1, state.enemy.atk - Math.floor(state.heroLevel / 3));
     state.hp = Math.max(0, state.hp - enemyDmg);
 
@@ -198,9 +250,8 @@
     if (state.gold < cost) return;
     state.gold -= cost;
     state.atk += 3;
+    el.arenaLog.textContent = `Sternenklinge gekauft! ATK jetzt ${state.atk}.`;
     setLog(`Upgrade! ATK ist jetzt ${state.atk}.`);
-    const p = centerOf(el.btnUpgrade);
-    floatText("ATK +3", p.x, p.y - 20);
     save();
     render();
   }
@@ -210,9 +261,60 @@
     if (state.gold < cost || state.hp >= state.maxHp) return;
     state.gold -= cost;
     state.hp = state.maxHp;
-    setLog("Heiltrank! Lumi fühlt sich wieder flauschig.");
+    setLog("Kirschtrank! Lumi fühlt sich wieder flauschig.");
     save();
     render();
+  }
+
+  function runArenaFight() {
+    const wager = arenaWager();
+    if (state.arenaBusy || state.gold < wager) return;
+
+    state.arenaBusy = true;
+    state.gold -= wager;
+    el.arenaStatus.textContent = "Kampf läuft…";
+    el.arenaLog.textContent = "Lumi betritt die Sternenarena!";
+    render();
+
+    const enemyHp = 40 + state.stage * 22 + state.atk;
+    const enemyAtk = 6 + Math.floor(state.stage * 2.2);
+    let hp = enemyHp;
+    let heroHp = state.hp;
+    let rounds = 0;
+
+    const timer = setInterval(() => {
+      rounds += 1;
+      const dmg = state.atk + Math.floor(Math.random() * 4);
+      hp -= dmg;
+      el.arenaLog.textContent = `Runde ${rounds}: Lumi trifft für ${dmg}. Geist noch ${Math.max(0, Math.ceil(hp))} HP.`;
+
+      if (hp <= 0) {
+        clearInterval(timer);
+        const reward = Math.floor(wager * 2.5);
+        state.gold += reward;
+        gainExp(8 + state.stage);
+        state.hp = Math.max(heroHp, Math.ceil(state.maxHp * 0.6));
+        state.arenaBusy = false;
+        el.arenaStatus.textContent = "Sieg!";
+        el.arenaLog.textContent = `Arena gewonnen! +${reward} Gold`;
+        save();
+        render();
+        return;
+      }
+
+      const hit = Math.max(1, enemyAtk - Math.floor(state.heroLevel / 4));
+      heroHp = Math.max(0, heroHp - hit);
+
+      if (heroHp <= 0) {
+        clearInterval(timer);
+        state.hp = Math.ceil(state.maxHp * 0.35);
+        state.arenaBusy = false;
+        el.arenaStatus.textContent = "Niederlage";
+        el.arenaLog.textContent = "Der Arena-Geist war zu stark. Einsatz verloren.";
+        save();
+        render();
+      }
+    }, 700);
   }
 
   function save() {
@@ -230,7 +332,7 @@
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
     } catch (_) {
-      /* ignore quota / private mode */
+      /* ignore */
     }
   }
 
@@ -248,7 +350,7 @@
       state.stage = data.stage ?? 1;
       state.lastSeen = data.lastSeen ?? Date.now();
     } catch (_) {
-      /* ignore corrupt save */
+      /* ignore */
     }
   }
 
@@ -276,20 +378,29 @@
     state.gold += state.pendingAfkGold;
     state.pendingAfkGold = 0;
     el.modalAfk.classList.add("hidden");
-    setLog("AFK-Gold eingesammelt. Weiter geht’s!");
     save();
     render();
   }
 
+  document.querySelectorAll(".place[data-screen]").forEach((btn) => {
+    btn.addEventListener("click", () => travelTo(btn.dataset.screen));
+  });
+
+  document.querySelectorAll("[data-back]").forEach((btn) => {
+    btn.addEventListener("click", () => showScreen("world"));
+  });
+
   el.btnUpgrade.addEventListener("click", doUpgrade);
   el.btnHeal.addEventListener("click", doHeal);
+  el.btnArenaFight.addEventListener("click", runArenaFight);
   el.btnHelp.addEventListener("click", () => el.modalHelp.classList.remove("hidden"));
   el.btnCloseHelp.addEventListener("click", () => el.modalHelp.classList.add("hidden"));
   el.btnClaimAfk.addEventListener("click", claimAfk);
 
+  window.KnufforiaCharacters.mountAll();
   load();
   spawnEnemy();
-  render();
+  showScreen("world");
   showAfkIfNeeded();
   save();
 

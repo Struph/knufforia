@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#7ec8b8" />
+  <meta name="theme-color" content="#6db8a8" />
   <title>Knufforia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐰</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -22,82 +22,231 @@
   </div>
 
   <div class="app">
-    <header class="top">
-      <div class="brand">
-        <p class="brand-name">Knufforia</p>
-        <p class="brand-tag">Arbeitstitel · Idle Fantasy</p>
-      </div>
-      <button type="button" class="icon-btn" id="btn-help" aria-label="Hilfe">?</button>
-    </header>
+    <!-- WORLD MAP HUB -->
+    <section class="screen active" id="screen-world" aria-label="Weltkarte">
+      <header class="top">
+        <div class="brand">
+          <p class="brand-name">Knufforia</p>
+          <p class="brand-tag">Reise durch die Flauschlande</p>
+        </div>
+        <button type="button" class="icon-btn" id="btn-help" aria-label="Hilfe">?</button>
+      </header>
 
-    <section class="stats" aria-label="Ressourcen">
-      <div class="stat">
-        <span class="stat-label">Gold</span>
-        <span class="stat-value" id="gold">0</span>
+      <div class="hud-row">
+        <div class="pill gold-pill"><span id="gold-world">0</span> Gold</div>
+        <div class="pill">Lv <span id="level-world">1</span></div>
       </div>
-      <div class="stat">
-        <span class="stat-label">Stufe</span>
-        <span class="stat-value" id="hero-level">1</span>
+
+      <div class="hero-intro">
+        <div class="anime-girl portrait" id="world-hero" aria-hidden="true"></div>
+        <div class="hero-speech">
+          <p class="hero-name-line">Lumi</p>
+          <p class="speech-text">Wohin reisen wir heute?</p>
+        </div>
       </div>
-      <div class="stat">
-        <span class="stat-label">Kapitel</span>
-        <span class="stat-value" id="stage">1</span>
+
+      <div class="world-map" role="navigation" aria-label="Orte der Welt">
+        <svg class="map-art" viewBox="0 0 360 420" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#7ec9d4"/>
+              <stop offset="100%" stop-color="#4fa8b5"/>
+            </linearGradient>
+            <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#b8e6a8"/>
+              <stop offset="55%" stop-color="#8fce7a"/>
+              <stop offset="100%" stop-color="#6fb56a"/>
+            </linearGradient>
+            <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffe2b8"/>
+              <stop offset="100%" stop-color="#f0c78a"/>
+            </linearGradient>
+            <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <rect width="360" height="420" fill="url(#sea)"/>
+          <ellipse cx="60" cy="40" rx="50" ry="18" fill="#fff7ef" opacity="0.45"/>
+          <ellipse cx="300" cy="70" rx="70" ry="22" fill="#fff7ef" opacity="0.35"/>
+
+          <!-- main island -->
+          <path d="M40 250 C50 170 110 130 180 140 C250 150 310 180 320 250 C330 320 280 360 200 370 C110 380 30 330 40 250Z" fill="url(#land)"/>
+          <path d="M70 300 C90 270 140 255 190 260 C250 266 290 290 295 320 C300 350 250 365 190 362 C120 358 55 335 70 300Z" fill="url(#sand)" opacity="0.55"/>
+
+          <!-- hills -->
+          <path d="M90 220 C110 190 140 185 160 205 C145 215 115 220 90 220Z" fill="#79c46f"/>
+          <path d="M210 200 C235 170 275 175 290 205 C265 215 230 215 210 200Z" fill="#6fba68"/>
+
+          <!-- path -->
+          <path d="M175 330 C168 300 155 270 148 245 C140 215 155 190 190 175 C220 162 250 170 268 195"
+                fill="none" stroke="#f4d7a5" stroke-width="10" stroke-linecap="round" opacity="0.85"/>
+          <path d="M175 330 C168 300 155 270 148 245 C140 215 155 190 190 175 C220 162 250 170 268 195"
+                fill="none" stroke="#fff6e4" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 10" opacity="0.9"/>
+
+          <!-- trees -->
+          <g fill="#3f8f5a">
+            <circle cx="100" cy="280" r="14"/><rect x="97" y="280" width="6" height="14" fill="#7a4d2e"/>
+            <circle cx="245" cy="300" r="12"/><rect x="242" y="300" width="6" height="12" fill="#7a4d2e"/>
+            <circle cx="130" cy="175" r="11"/><rect x="127" y="175" width="6" height="10" fill="#7a4d2e"/>
+          </g>
+        </svg>
+
+        <button type="button" class="place place-battle" data-screen="battle" aria-label="Zum Kampf reisen">
+          <span class="place-pin"></span>
+          <span class="place-label">
+            <strong>Kampfhain</strong>
+            <small>Abenteuer &amp; Kapitel</small>
+          </span>
+        </button>
+
+        <button type="button" class="place place-arena" data-screen="arena" aria-label="Zur Arena reisen">
+          <span class="place-pin arena"></span>
+          <span class="place-label">
+            <strong>Sternenarena</strong>
+            <small>Herausforderungen</small>
+          </span>
+        </button>
+
+        <button type="button" class="place place-shop" data-screen="shop" aria-label="Zum Shop reisen">
+          <span class="place-pin shop"></span>
+          <span class="place-label">
+            <strong>Mondbasar</strong>
+            <small>Tränke &amp; Upgrades</small>
+          </span>
+        </button>
       </div>
+
+      <p class="hint map-hint">Tippe einen Ort auf der Karte, um dorthin zu reisen</p>
     </section>
 
-    <section class="arena" aria-label="Kampf">
-      <div class="fighter hero-side">
-        <div class="chibi hero" id="hero-sprite" aria-hidden="true">
-          <div class="ear left"></div>
-          <div class="ear right"></div>
-          <div class="face">
-            <div class="eye l"></div>
-            <div class="eye r"></div>
-            <div class="blush l"></div>
-            <div class="blush r"></div>
-            <div class="mouth"></div>
+    <!-- BATTLE -->
+    <section class="screen" id="screen-battle" aria-label="Kampf">
+      <header class="screen-bar">
+        <button type="button" class="back-btn" data-back aria-label="Zurück zur Karte">← Karte</button>
+        <h1>Kampfhain</h1>
+        <span class="bar-spacer"></span>
+      </header>
+
+      <section class="stats" aria-label="Ressourcen">
+        <div class="stat">
+          <span class="stat-label">Gold</span>
+          <span class="stat-value" id="gold">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Stufe</span>
+          <span class="stat-value" id="hero-level">1</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Kapitel</span>
+          <span class="stat-value" id="stage">1</span>
+        </div>
+      </section>
+
+      <section class="battle-arena" aria-label="Kampf">
+        <div class="fighter hero-side">
+          <div class="anime-girl battle" id="hero-sprite" aria-hidden="true"></div>
+          <p class="fighter-name" id="hero-name">Lumi</p>
+          <div class="hp-bar"><div class="hp-fill" id="hero-hp"></div></div>
+          <p class="fighter-meta" id="hero-power">ATK 10</p>
+        </div>
+
+        <div class="vs" id="battle-fx">VS</div>
+
+        <div class="fighter enemy-side">
+          <div class="chibi enemy" id="enemy-sprite" aria-hidden="true">
+            <div class="blob-body"></div>
+            <div class="blob-eye l"></div>
+            <div class="blob-eye r"></div>
+            <div class="blob-horn"></div>
           </div>
-          <div class="scarf"></div>
+          <p class="fighter-name" id="enemy-name">Flauschgeist</p>
+          <div class="hp-bar"><div class="hp-fill enemy" id="enemy-hp"></div></div>
+          <p class="fighter-meta" id="enemy-power">HP 30</p>
         </div>
-        <p class="fighter-name" id="hero-name">Lumi</p>
-        <div class="hp-bar"><div class="hp-fill" id="hero-hp"></div></div>
-        <p class="fighter-meta" id="hero-power">ATK 10</p>
+      </section>
+
+      <p class="log" id="log">Lumi betritt den Kampfhain…</p>
+
+      <div class="exp-wrap">
+        <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
+        <p class="exp-text" id="exp-text">EXP 0 / 20</p>
       </div>
 
-      <div class="vs" id="battle-fx">VS</div>
+      <p class="hint">Kampf läuft automatisch · Fortschritt wird gespeichert</p>
+    </section>
 
-      <div class="fighter enemy-side">
-        <div class="chibi enemy" id="enemy-sprite" aria-hidden="true">
-          <div class="blob-body"></div>
-          <div class="blob-eye l"></div>
-          <div class="blob-eye r"></div>
-          <div class="blob-horn"></div>
-        </div>
-        <p class="fighter-name" id="enemy-name">Flauschgeist</p>
-        <div class="hp-bar"><div class="hp-fill enemy" id="enemy-hp"></div></div>
-        <p class="fighter-meta" id="enemy-power">HP 30</p>
+    <!-- ARENA -->
+    <section class="screen" id="screen-arena" aria-label="Arena">
+      <header class="screen-bar">
+        <button type="button" class="back-btn" data-back aria-label="Zurück zur Karte">← Karte</button>
+        <h1>Sternenarena</h1>
+        <span class="bar-spacer"></span>
+      </header>
+
+      <div class="place-hero">
+        <div class="anime-girl portrait small" aria-hidden="true"></div>
+        <p>Tritt gegen einen Arena-Geist an. Schwerer, aber mehr Gold.</p>
+      </div>
+
+      <div class="arena-panel">
+        <p class="arena-status" id="arena-status">Bereit für die nächste Herausforderung</p>
+        <p class="arena-meta">Einsatz: <span id="arena-wager">30</span> Gold · Belohnung: x2.5</p>
+        <button type="button" class="btn primary" id="btn-arena-fight">
+          Arena-Kampf starten
+          <span class="btn-sub">Lumi kämpft automatisch</span>
+        </button>
+        <p class="log" id="arena-log">Die Arena wartet auf dich.</p>
       </div>
     </section>
 
-    <p class="log" id="log">Lumi betritt die Wiesen von Knufforia…</p>
+    <!-- SHOP -->
+    <section class="screen" id="screen-shop" aria-label="Shop">
+      <header class="screen-bar">
+        <button type="button" class="back-btn" data-back aria-label="Zurück zur Karte">← Karte</button>
+        <h1>Mondbasar</h1>
+        <span class="bar-spacer"></span>
+      </header>
 
-    <div class="exp-wrap">
-      <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
-      <p class="exp-text" id="exp-text">EXP 0 / 20</p>
-    </div>
+      <div class="shop-banner">
+        <div class="anime-girl portrait small" aria-hidden="true"></div>
+        <div>
+          <p class="shop-gold">Dein Gold: <strong id="gold-shop">0</strong></p>
+          <p class="shop-note">Willkommen im Mondbasar, Reisende!</p>
+        </div>
+      </div>
 
-    <section class="actions">
-      <button type="button" class="btn primary" id="btn-upgrade">
-        Upgrade ATK
-        <span class="btn-sub" id="upgrade-cost">Kosten: 25 Gold</span>
-      </button>
-      <button type="button" class="btn soft" id="btn-heal">
-        Heiltrank
-        <span class="btn-sub" id="heal-cost">Kosten: 15 Gold</span>
-      </button>
+      <div class="shop-shelf">
+        <article class="shop-item">
+          <div class="item-art atk"></div>
+          <div class="item-info">
+            <h2>Sternenklinge</h2>
+            <p>Erhöht Lumi’s Angriff dauerhaft.</p>
+            <button type="button" class="btn primary compact" id="btn-upgrade">
+              Kaufen
+              <span class="btn-sub" id="upgrade-cost">25 Gold</span>
+            </button>
+          </div>
+        </article>
+
+        <article class="shop-item">
+          <div class="item-art heal"></div>
+          <div class="item-info">
+            <h2>Kirschtrank</h2>
+            <p>Stellt die gesamte Lebensenergie wieder her.</p>
+            <button type="button" class="btn soft compact" id="btn-heal">
+              Kaufen
+              <span class="btn-sub" id="heal-cost">15 Gold</span>
+            </button>
+          </div>
+        </article>
+      </div>
     </section>
+  </div>
 
-    <p class="hint">Kampf läuft automatisch · Fortschritt wird gespeichert</p>
+  <div class="travel-overlay hidden" id="travel-overlay" aria-hidden="true">
+    <p id="travel-text">Unterwegs…</p>
   </div>
 
   <div class="modal hidden" id="modal-afk" role="dialog" aria-labelledby="afk-title">
@@ -113,15 +262,16 @@
     <div class="modal-card">
       <h2 id="help-title">So spielt man</h2>
       <ol class="help-list">
-        <li>Lumi kämpft von allein gegen knuffige Gegner.</li>
-        <li>Mit Gold kannst du ATK upgraden und heilen.</li>
-        <li>Wenn du später zurückkommst, gibt’s AFK-Gold.</li>
-        <li>Auf dem iPhone: Teilen → „Zum Home-Bildschirm“.</li>
+        <li>Auf der Weltkarte tippst du Orte an, zu denen Lumi reist.</li>
+        <li>Im Kampfhain kämpft sie automatisch um Gold &amp; EXP.</li>
+        <li>Im Mondbasar kaufst du Upgrades und Tränke.</li>
+        <li>In der Sternenarena gibt’s riskante Extra-Belohnungen.</li>
       </ol>
       <button type="button" class="btn soft" id="btn-close-help">Verstanden</button>
     </div>
   </div>
 
+  <script src="js/characters.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
