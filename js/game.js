@@ -365,7 +365,7 @@
         <input id="in-name" type="text" maxlength="16" placeholder="z. B. Liora" value="${state.draft.name.replace(/"/g, "&quot;")}" /></div>`;
     } else if (step.id === "body") {
       html += `<div class="create-field"><label>Körpertyp</label>${chips(C.BODIES, "body")}</div>
-        <div class="create-field"><label>Hautton</label>${swatches(C.SKINS, "skin")}</div>`;
+        <p class="lead">Menschliche Proportionen mit Anime-Gesicht – wie in Fiesta Online.</p>`;
     } else if (step.id === "hair") {
       html += `<div class="create-field"><label>Frisur</label>${chips(C.HAIR_STYLES, "hairStyle")}</div>
         <div class="create-field"><label>Haarfarbe</label>${swatches(C.HAIR_COLORS, "hairColor")}</div>`;
