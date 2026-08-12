@@ -311,7 +311,7 @@ body {
 
 .unit {
   position: absolute;
-  width: clamp(64px, 14vw, 108px);
+  width: clamp(68px, 15vw, 112px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -320,15 +320,19 @@ body {
   will-change: transform;
 }
 
+.unit .human-rig {
+  width: 70px;
+  height: 120px;
+  margin-bottom: 0.05rem;
+}
+
 .unit .puppet {
   margin-bottom: 0.05rem;
-  width: 64px;
-  height: 96px;
 }
 
 .unit.boss-unit .puppet {
-  width: 96px;
-  height: 132px;
+  width: 92px;
+  height: 128px;
 }
 
 /* Heroes: 2 front (near path), 1 mid, 2 back (near edge) */
