@@ -184,8 +184,8 @@ body {
 
 .place-hero #arena-preview .avatar-rig,
 .shop-banner #shop-preview .avatar-rig {
-  width: 72px;
-  height: 110px;
+  width: 90px;
+  height: 140px;
   transform: none;
 }
 

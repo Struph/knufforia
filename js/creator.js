@@ -89,23 +89,28 @@ window.KnufforiaCreator = {
            style="--av-skin:${c.skin};--av-hair:${c.hairColor};--av-eye:${c.eyeColor};--av-cloth1:${c.cloth1};--av-cloth2:${c.cloth2};--av-accent:${c.accent};--av-boot:${c.boot || "#3a2f45"}">
         <div class="av-shadow"></div>
         <div class="av-body">
-          <div class="av-leg l"><div class="av-thigh"></div><div class="av-shin"></div></div>
-          <div class="av-leg r"><div class="av-thigh"></div><div class="av-shin"></div></div>
+          <div class="av-leg l"><div class="av-thigh"></div><div class="av-shin"></div><div class="av-shoe"></div></div>
+          <div class="av-leg r"><div class="av-thigh"></div><div class="av-shin"></div><div class="av-shoe"></div></div>
           <div class="av-skirt"></div>
           <div class="av-hips"></div>
           <div class="av-torso">
-            <div class="av-arm l"><div class="av-upper"></div><div class="av-fore"></div></div>
-            <div class="av-chest"></div>
-            <div class="av-arm r"><div class="av-upper"></div><div class="av-fore"><div class="av-weapon"></div></div></div>
+            <div class="av-arm l"><div class="av-upper"></div><div class="av-fore"></div><div class="av-hand"></div></div>
+            <div class="av-chest"><div class="av-collar"></div><div class="av-trim"></div></div>
+            <div class="av-arm r"><div class="av-upper"></div><div class="av-fore"></div><div class="av-hand"></div><div class="av-weapon"></div></div>
             <div class="av-neck"></div>
             <div class="av-head">
-              <div class="av-hair-back"></div>
+              <div class="av-hair-back"><span class="av-strand a"></span><span class="av-strand b"></span></div>
+              <div class="av-ear l"></div><div class="av-ear r"></div>
               <div class="av-face">
+                <div class="av-blush l"></div><div class="av-blush r"></div>
                 <div class="av-brow l"></div><div class="av-brow r"></div>
-                <div class="av-eye l"></div><div class="av-eye r"></div>
+                <div class="av-eye l"><span class="iris"></span><span class="shine"></span><span class="lash"></span></div>
+                <div class="av-eye r"><span class="iris"></span><span class="shine"></span><span class="lash"></span></div>
+                <div class="av-nose"></div>
                 <div class="av-mouth"></div>
               </div>
-              <div class="av-hair-front"></div>
+              <div class="av-hair-front"><span class="av-bang a"></span><span class="av-bang b"></span><span class="av-bang c"></span></div>
+              <div class="av-hair-side l"></div><div class="av-hair-side r"></div>
               ${acc}
             </div>
           </div>
