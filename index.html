@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="screen-orientation" content="landscape" />
   <meta name="theme-color" content="#6db8a8" />
   <title>Knufforia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,6 +15,11 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
 </head>
 <body>
+  <div class="rotate-gate" id="rotate-gate" aria-hidden="true">
+    <p>Bitte das iPhone <strong>quer</strong> halten</p>
+    <div class="phone-hint" aria-hidden="true"></div>
+  </div>
+
   <div class="sky" aria-hidden="true">
     <div class="cloud c1"></div>
     <div class="cloud c2"></div>
@@ -21,7 +27,6 @@
   </div>
 
   <div class="app">
-    <!-- BATTLE PATH = START -->
     <section class="screen active" id="screen-battle" aria-label="Kampfweg">
       <header class="battle-top">
         <button type="button" class="pill-link" data-screen="shop">Basar</button>
@@ -30,89 +35,89 @@
           <span class="room-value" id="room-level">1</span>
           <span class="room-boss hidden" id="boss-tag">BOSS</span>
         </div>
+        <div class="hud-mini">
+          <span class="pill gold-pill"><span id="gold">0</span>★</span>
+          <span class="pill">Lv <span id="team-level">1</span></span>
+          <button type="button" class="icon-btn tiny" id="btn-help" aria-label="Hilfe">?</button>
+        </div>
         <button type="button" class="pill-link" data-screen="arena">Arena</button>
       </header>
 
-      <div class="hud-mini">
-        <span class="pill gold-pill"><span id="gold">0</span> Gold</span>
-        <span class="pill">Team Lv <span id="team-level">1</span></span>
-        <button type="button" class="icon-btn tiny" id="btn-help" aria-label="Hilfe">?</button>
-      </div>
-
       <div class="path-stage" id="path-stage">
         <div class="path-road" aria-hidden="true"></div>
-
         <div class="lane heroes" id="hero-lane" aria-label="Helden"></div>
         <div class="lane foes" id="enemy-lane" aria-label="Gegner"></div>
       </div>
 
-      <p class="log" id="log">Lumi und ihre Freundinnen betreten den Weg…</p>
-      <div class="exp-wrap">
-        <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
-        <p class="exp-text" id="exp-text">Team-EXP 0 / 20</p>
-      </div>
-      <p class="hint">Angriffe laufen nacheinander · bei Raum 10, 20, 30… erscheint ein Boss</p>
+      <footer class="battle-foot">
+        <p class="log" id="log">Das Team betritt den Weg…</p>
+        <div class="exp-wrap">
+          <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
+        </div>
+      </footer>
     </section>
 
-    <!-- ARENA -->
     <section class="screen" id="screen-arena" aria-label="Arena">
       <header class="screen-bar">
         <button type="button" class="back-btn" data-back aria-label="Zurück zum Weg">← Weg</button>
         <h1>Sternenarena</h1>
         <span class="bar-spacer"></span>
       </header>
-      <div class="place-hero">
-        <img class="thumb" src="assets/heroes/hero-lumi.webp" alt="" />
-        <p>Riskanter Kampf gegen einen Aren-Ork. Mehr Gold bei Sieg.</p>
-      </div>
-      <div class="arena-panel">
-        <p class="arena-status" id="arena-status">Bereit</p>
-        <p class="arena-meta">Einsatz: <span id="arena-wager">30</span> Gold · Belohnung x2.5</p>
-        <button type="button" class="btn primary" id="btn-arena-fight">
-          Arena starten
-          <span class="btn-sub">Schneller Duell-Kampf</span>
-        </button>
-        <p class="log" id="arena-log">Die Arena wartet.</p>
+      <div class="side-layout">
+        <div class="place-hero">
+          <img class="thumb" src="assets/heroes/hero-lumi.webp?v=3" alt="" />
+          <p>Riskanter Kampf gegen einen Aren-Ork. Mehr Gold bei Sieg.</p>
+        </div>
+        <div class="arena-panel">
+          <p class="arena-status" id="arena-status">Bereit</p>
+          <p class="arena-meta">Einsatz: <span id="arena-wager">30</span> Gold · x2.5</p>
+          <button type="button" class="btn primary" id="btn-arena-fight">
+            Arena starten
+            <span class="btn-sub">Schneller Duell-Kampf</span>
+          </button>
+          <p class="log" id="arena-log">Die Arena wartet.</p>
+        </div>
       </div>
     </section>
 
-    <!-- SHOP -->
     <section class="screen" id="screen-shop" aria-label="Shop">
       <header class="screen-bar">
         <button type="button" class="back-btn" data-back aria-label="Zurück zum Weg">← Weg</button>
         <h1>Mondbasar</h1>
         <span class="bar-spacer"></span>
       </header>
-      <div class="shop-banner">
-        <img class="thumb" src="assets/heroes/hero-lumi.webp" alt="" />
-        <div>
-          <p class="shop-gold">Dein Gold: <strong id="gold-shop">0</strong></p>
-          <p class="shop-note">Stärke dein ganzes Team.</p>
+      <div class="side-layout">
+        <div class="shop-banner">
+          <img class="thumb" src="assets/heroes/hero-lumi.webp?v=3" alt="" />
+          <div>
+            <p class="shop-gold">Gold: <strong id="gold-shop">0</strong></p>
+            <p class="shop-note">Stärke dein ganzes Team.</p>
+          </div>
         </div>
-      </div>
-      <div class="shop-shelf">
-        <article class="shop-item">
-          <div class="item-art atk"></div>
-          <div class="item-info">
-            <h2>Sternenklinge</h2>
-            <p>Erhöht den Angriff aller Heldinnen.</p>
-            <button type="button" class="btn primary compact" id="btn-upgrade">
-              Kaufen
-              <span class="btn-sub" id="upgrade-cost">25 Gold</span>
-            </button>
-          </div>
-        </article>
-        <article class="shop-item">
-          <div class="item-art heal"></div>
-          <div class="item-info">
-            <h2>Kirschtrank</h2>
-            <p>Heilt das gesamte Team vollständig.</p>
-            <button type="button" class="btn soft compact" id="btn-heal">
-              Kaufen
-              <span class="btn-sub" id="heal-cost">15 Gold</span>
-            </button>
-          </div>
-        </article>
+        <div class="shop-shelf">
+          <article class="shop-item">
+            <div class="item-art atk"></div>
+            <div class="item-info">
+              <h2>Sternenklinge</h2>
+              <p>ATK für alle Heldinnen.</p>
+              <button type="button" class="btn primary compact" id="btn-upgrade">
+                Kaufen
+                <span class="btn-sub" id="upgrade-cost">25 Gold</span>
+              </button>
+            </div>
+          </article>
+          <article class="shop-item">
+            <div class="item-art heal"></div>
+            <div class="item-info">
+              <h2>Kirschtrank</h2>
+              <p>Heilt das gesamte Team.</p>
+              <button type="button" class="btn soft compact" id="btn-heal">
+                Kaufen
+                <span class="btn-sub" id="heal-cost">15 Gold</span>
+              </button>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   </div>
@@ -134,11 +139,10 @@
     <div class="modal-card">
       <h2 id="help-title">So spielt man</h2>
       <ol class="help-list">
-        <li>Links stehen bis zu 5 Heldinnen, rechts bis zu 5 Orks.</li>
-        <li>Sie greifen nacheinander an — automatisch.</li>
-        <li>Sind alle Gegner besiegt, steigt der Raum um 1.</li>
-        <li>Bei Raum 10, 20, 30… kommt ein Boss.</li>
-        <li>Basar &amp; Arena erreichst du oben am Rand.</li>
+        <li>Halte das Handy <strong>quer</strong>.</li>
+        <li>Links 5 Heldinnen, rechts bis zu 5 Orks — alle immer sichtbar.</li>
+        <li>Angriffe laufen nacheinander.</li>
+        <li>Raum frei → Raum +1. Bei 10, 20, 30… kommt ein Boss.</li>
       </ol>
       <button type="button" class="btn soft" id="btn-close-help">Verstanden</button>
     </div>

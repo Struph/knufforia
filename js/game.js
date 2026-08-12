@@ -5,20 +5,20 @@
   const AFK_GOLD_PER_MIN = 2;
 
   const HERO_TEMPLATES = [
-    { id: "lumi", name: "Lumi", img: "assets/heroes/hero-lumi.webp", atk: 12, maxHp: 110 },
-    { id: "sora", name: "Sora", img: "assets/heroes/hero-sora.webp", atk: 11, maxHp: 105 },
-    { id: "mika", name: "Mika", img: "assets/heroes/hero-mika.webp", atk: 14, maxHp: 100 },
-    { id: "hana", name: "Hana", img: "assets/heroes/hero-hana.webp", atk: 10, maxHp: 120 },
-    { id: "nori", name: "Nori", img: "assets/heroes/hero-nori.webp", atk: 13, maxHp: 95 },
+    { id: "lumi", name: "Lumi", img: "assets/heroes/hero-lumi.webp?v=3", atk: 12, maxHp: 110 },
+    { id: "sora", name: "Sora", img: "assets/heroes/hero-sora.webp?v=3", atk: 11, maxHp: 105 },
+    { id: "mika", name: "Mika", img: "assets/heroes/hero-mika.webp?v=3", atk: 14, maxHp: 100 },
+    { id: "hana", name: "Hana", img: "assets/heroes/hero-hana.webp?v=3", atk: 10, maxHp: 120 },
+    { id: "nori", name: "Nori", img: "assets/heroes/hero-nori.webp?v=3", atk: 13, maxHp: 95 },
   ];
 
   const ORC_POOL = [
-    { name: "Knuffork", img: "assets/enemies/orc-grunt.webp", atk: 5, hpMul: 1 },
-    { name: "Zahnork", img: "assets/enemies/orc-grunt.webp", atk: 6, hpMul: 1.05 },
-    { name: "Keulenork", img: "assets/enemies/orc-brute.webp", atk: 7, hpMul: 1.2 },
-    { name: "Moosork", img: "assets/enemies/orc-brute.webp", atk: 7, hpMul: 1.25 },
-    { name: "Runenork", img: "assets/enemies/orc-shaman.webp", atk: 8, hpMul: 1.1 },
-    { name: "Kriegsork", img: "assets/enemies/orc-warrior.webp", atk: 9, hpMul: 1.3 },
+    { name: "Knuffork", img: "assets/enemies/orc-grunt.webp?v=3", atk: 5, hpMul: 1 },
+    { name: "Zahnork", img: "assets/enemies/orc-grunt.webp?v=3", atk: 6, hpMul: 1.05 },
+    { name: "Keulenork", img: "assets/enemies/orc-brute.webp?v=3", atk: 7, hpMul: 1.2 },
+    { name: "Moosork", img: "assets/enemies/orc-brute.webp?v=3", atk: 7, hpMul: 1.25 },
+    { name: "Runenork", img: "assets/enemies/orc-shaman.webp?v=3", atk: 8, hpMul: 1.1 },
+    { name: "Kriegsork", img: "assets/enemies/orc-warrior.webp?v=3", atk: 9, hpMul: 1.3 },
   ];
 
   const el = {
@@ -36,7 +36,6 @@
     enemyLane: document.getElementById("enemy-lane"),
     log: document.getElementById("log"),
     expFill: document.getElementById("exp-fill"),
-    expText: document.getElementById("exp-text"),
     upgradeCost: document.getElementById("upgrade-cost"),
     healCost: document.getElementById("heal-cost"),
     btnUpgrade: document.getElementById("btn-upgrade"),
@@ -114,7 +113,7 @@
       return [
         {
           name: `Häuptling Raum ${room}`,
-          img: "assets/enemies/orc-boss.webp",
+          img: "assets/enemies/orc-boss.webp?v=3",
           atk: scaleForRoom(14, room),
           maxHp: hp,
           hp,
@@ -163,6 +162,8 @@
   function renderLanes() {
     el.heroLane.innerHTML = "";
     el.enemyLane.innerHTML = "";
+    const boss = state.enemies.length === 1 && state.enemies[0].boss;
+    el.enemyLane.classList.toggle("boss-mode", !!boss);
     state.heroes.forEach((h) => el.heroLane.appendChild(unitNode(h, "heroes")));
     state.enemies.forEach((e) => el.enemyLane.appendChild(unitNode(e, "foes")));
   }
@@ -198,7 +199,6 @@
 
     const need = expToLevel(state.teamLevel);
     el.expFill.style.width = `${Math.min(100, (state.exp / need) * 100)}%`;
-    el.expText.textContent = `Team-EXP ${state.exp} / ${need}`;
 
     el.upgradeCost.textContent = `${upgradeCost()} Gold`;
     el.healCost.textContent = `${healCost()} Gold`;
@@ -313,6 +313,7 @@
 
   function attackOnce() {
     if (state.paused || state.busyRoom || state.screen !== "battle") return;
+    if (window.matchMedia("(orientation: portrait) and (max-width: 920px)").matches) return;
 
     if (!living(state.enemies).length) {
       nextRoom();
