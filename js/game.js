@@ -5,21 +5,24 @@
   const AFK_GOLD_PER_MIN = 2;
 
   const HERO_TEMPLATES = [
-    { id: "lumi", name: "Lumi", img: "assets/heroes/hero-lumi.webp?v=3", atk: 12, maxHp: 110 },
-    { id: "sora", name: "Sora", img: "assets/heroes/hero-sora.webp?v=3", atk: 11, maxHp: 105 },
-    { id: "mika", name: "Mika", img: "assets/heroes/hero-mika.webp?v=3", atk: 14, maxHp: 100 },
-    { id: "hana", name: "Hana", img: "assets/heroes/hero-hana.webp?v=3", atk: 10, maxHp: 120 },
-    { id: "nori", name: "Nori", img: "assets/heroes/hero-nori.webp?v=3", atk: 13, maxHp: 95 },
+    { id: "lumi", name: "Lumi", img: "assets/heroes/hero-lumi.webp?v=4", atk: 12, maxHp: 110 },
+    { id: "sora", name: "Sora", img: "assets/heroes/hero-sora.webp?v=4", atk: 11, maxHp: 105 },
+    { id: "mika", name: "Mika", img: "assets/heroes/hero-mika.webp?v=4", atk: 14, maxHp: 100 },
+    { id: "hana", name: "Hana", img: "assets/heroes/hero-hana.webp?v=4", atk: 10, maxHp: 120 },
+    { id: "nori", name: "Nori", img: "assets/heroes/hero-nori.webp?v=4", atk: 13, maxHp: 95 },
   ];
 
   const ORC_POOL = [
-    { name: "Knuffork", img: "assets/enemies/orc-grunt.webp?v=3", atk: 5, hpMul: 1 },
-    { name: "Zahnork", img: "assets/enemies/orc-grunt.webp?v=3", atk: 6, hpMul: 1.05 },
-    { name: "Keulenork", img: "assets/enemies/orc-brute.webp?v=3", atk: 7, hpMul: 1.2 },
-    { name: "Moosork", img: "assets/enemies/orc-brute.webp?v=3", atk: 7, hpMul: 1.25 },
-    { name: "Runenork", img: "assets/enemies/orc-shaman.webp?v=3", atk: 8, hpMul: 1.1 },
-    { name: "Kriegsork", img: "assets/enemies/orc-warrior.webp?v=3", atk: 9, hpMul: 1.3 },
+    { name: "Knuffork", img: "assets/enemies/orc-grunt.webp?v=4", atk: 5, hpMul: 1 },
+    { name: "Zahnork", img: "assets/enemies/orc-grunt.webp?v=4", atk: 6, hpMul: 1.05 },
+    { name: "Keulenork", img: "assets/enemies/orc-brute.webp?v=4", atk: 7, hpMul: 1.2 },
+    { name: "Moosork", img: "assets/enemies/orc-brute.webp?v=4", atk: 7, hpMul: 1.25 },
+    { name: "Runenork", img: "assets/enemies/orc-shaman.webp?v=4", atk: 8, hpMul: 1.1 },
+    { name: "Kriegsork", img: "assets/enemies/orc-warrior.webp?v=4", atk: 9, hpMul: 1.3 },
   ];
+
+  // 2 vorne, 1 mittig, 2 hinten
+  const FORMATION_SLOTS = ["front-a", "front-b", "mid", "back-a", "back-b"];
 
   const el = {
     screens: {
@@ -113,7 +116,7 @@
       return [
         {
           name: `Häuptling Raum ${room}`,
-          img: "assets/enemies/orc-boss.webp?v=3",
+          img: "assets/enemies/orc-boss.webp?v=4",
           atk: scaleForRoom(14, room),
           maxHp: hp,
           hp,
@@ -146,11 +149,13 @@
     return list.find((u) => !u.dead && u.hp > 0) || null;
   }
 
-  function unitNode(unit, side) {
+  function unitNode(unit, side, slot) {
     const wrap = document.createElement("div");
-    wrap.className = `unit${unit.boss ? " boss-unit" : ""}${unit.dead ? " dead" : ""}`;
+    const slotClass = unit.boss ? "boss-unit" : `slot-${slot}`;
+    wrap.className = `unit ${slotClass}${unit.dead ? " dead" : ""}`;
     wrap.dataset.id = unit.id || unit.name;
     wrap.dataset.side = side;
+    if (slot) wrap.dataset.slot = slot;
     wrap.innerHTML = `
       <img class="unit-art" src="${unit.img}" alt="" />
       <p class="unit-name">${unit.name}</p>
@@ -164,8 +169,14 @@
     el.enemyLane.innerHTML = "";
     const boss = state.enemies.length === 1 && state.enemies[0].boss;
     el.enemyLane.classList.toggle("boss-mode", !!boss);
-    state.heroes.forEach((h) => el.heroLane.appendChild(unitNode(h, "heroes")));
-    state.enemies.forEach((e) => el.enemyLane.appendChild(unitNode(e, "foes")));
+    state.heroes.forEach((h, i) => {
+      const slot = FORMATION_SLOTS[i] || FORMATION_SLOTS[FORMATION_SLOTS.length - 1];
+      el.heroLane.appendChild(unitNode(h, "heroes", slot));
+    });
+    state.enemies.forEach((e, i) => {
+      const slot = boss ? "mid" : FORMATION_SLOTS[i] || FORMATION_SLOTS[FORMATION_SLOTS.length - 1];
+      el.enemyLane.appendChild(unitNode(e, "foes", slot));
+    });
   }
 
   function findUnitEl(side, index) {

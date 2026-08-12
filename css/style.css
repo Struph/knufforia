@@ -293,56 +293,101 @@ body {
 
 .lane {
   position: absolute;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  width: 42%;
-  display: grid;
-  grid-template-rows: repeat(5, minmax(0, 1fr));
-  align-items: stretch;
-  gap: 0.15rem;
+  top: 0;
+  bottom: 0;
+  width: 46%;
   z-index: 1;
-  padding: 0 0.2rem;
+  pointer-events: none;
 }
 .lane.heroes {
-  left: 0.2rem;
-  justify-items: end;
+  left: 0.5%;
 }
 .lane.foes {
-  right: 0.2rem;
-  justify-items: start;
+  right: 0.5%;
 }
-.lane.foes.boss-mode {
-  grid-template-rows: 1fr;
-  align-items: center;
-  justify-items: center;
+.lane.foes.boss-mode .unit:not(.boss-unit) {
+  display: none;
 }
 
 .unit {
-  position: relative;
-  width: 100%;
-  max-width: 150px;
-  height: 100%;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: 1fr auto auto;
-  align-items: end;
-  justify-items: center;
-  gap: 0.05rem;
+  position: absolute;
+  width: clamp(52px, 12.5vw, 92px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  pointer-events: auto;
   transition: filter 0.18s ease, opacity 0.2s ease;
 }
-.lane.heroes .unit {
-  max-width: min(22vw, 150px);
+
+/* Heroes: 2 front (near path), 1 mid, 2 back (near edge) */
+.heroes .slot-back-a {
+  left: 2%;
+  top: 6%;
+  z-index: 1;
 }
-.lane.foes .unit {
-  max-width: min(22vw, 150px);
+.heroes .slot-back-b {
+  left: 2%;
+  top: 58%;
+  z-index: 1;
 }
+.heroes .slot-mid {
+  left: 28%;
+  top: 32%;
+  z-index: 2;
+}
+.heroes .slot-front-a {
+  left: 54%;
+  top: 10%;
+  z-index: 3;
+}
+.heroes .slot-front-b {
+  left: 54%;
+  top: 54%;
+  z-index: 3;
+}
+
+/* Foes mirrored */
+.foes .slot-back-a {
+  right: 2%;
+  top: 6%;
+  z-index: 1;
+}
+.foes .slot-back-b {
+  right: 2%;
+  top: 58%;
+  z-index: 1;
+}
+.foes .slot-mid {
+  right: 28%;
+  top: 32%;
+  z-index: 2;
+}
+.foes .slot-front-a {
+  right: 54%;
+  top: 10%;
+  z-index: 3;
+}
+.foes .slot-front-b {
+  right: 54%;
+  top: 54%;
+  z-index: 3;
+}
+
 .unit.boss-unit {
-  max-width: min(34vw, 210px);
-  height: min(78%, 100%);
+  width: clamp(88px, 20vw, 140px);
+  left: 50% !important;
+  right: auto !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+}
+.foes.boss-mode .unit.boss-unit {
+  /* keep centered in foe lane */
 }
 
 .unit.dead {
-  opacity: 0.32;
+  opacity: 0.3;
   filter: grayscale(0.75);
 }
 
@@ -357,13 +402,13 @@ body {
 }
 
 .unit-art {
-  width: auto;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
   object-fit: contain;
   object-position: bottom center;
-  filter: drop-shadow(0 5px 7px rgba(47, 36, 56, 0.28));
+  background: transparent;
+  filter: drop-shadow(0 4px 6px rgba(47, 36, 56, 0.35));
   pointer-events: none;
   user-select: none;
 }
@@ -371,10 +416,10 @@ body {
 .unit-name {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(0.55rem, 1.6vh, 0.75rem);
+  font-size: clamp(0.55rem, 1.5vh, 0.72rem);
   font-weight: 600;
   line-height: 1;
-  text-shadow: 0 1px 0 rgba(255, 247, 239, 0.75);
+  text-shadow: 0 1px 0 rgba(255, 247, 239, 0.8);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -382,7 +427,7 @@ body {
 }
 
 .unit-hp {
-  width: 85%;
+  width: 90%;
   height: 5px;
   background: rgba(47, 36, 56, 0.22);
   border-radius: 999px;
@@ -696,6 +741,9 @@ body {
 
 /* Very short landscape phones */
 @media (orientation: landscape) and (max-height: 420px) {
+  .unit {
+    width: clamp(44px, 11vw, 72px);
+  }
   .unit-name {
     display: none;
   }
